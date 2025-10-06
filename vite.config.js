@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   define: {
     "import.meta.env.VITE_API_URL": JSON.stringify(
-      process.env.VITE_API_URL || "https://summarizer-model.onrender.com"
+      process.env.VITE_API_URL || "http://localhost:8000"
     ),
     "import.meta.env.VITE_GEMINI_API_KEY": JSON.stringify(
       process.env.VITE_GEMINI_API_KEY || ""

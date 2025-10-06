@@ -31,13 +31,45 @@ const EnhancedRecommendations = () => {
     setError(null);
 
     try {
-      // Load query-based recommendations
-      const queryResponse = await apiService.getQueryRecommendations();
-      setQueryRecommendations(queryResponse.recommendations || []);
+      // Load query-based recommendations using example queries
+      const exampleQueries = [
+        "microgravity effects on bone density",
+        "plant growth experiments on ISS",
+        "space radiation effects on DNA",
+        "muscle atrophy in astronauts",
+        "circadian rhythm disruption in space",
+      ];
 
-      // Load record-based recommendations
-      const recordResponse = await apiService.getRecordRecommendations();
-      setRecordRecommendations(recordResponse.recommendations || []);
+      const queryPromises = exampleQueries.map((query) =>
+        apiService.recommendByQuery(query, 2).catch((err) => {
+          console.warn(`Failed to get recommendations for "${query}":`, err);
+          return { recommendations: [] };
+        })
+      );
+
+      const queryResults = await Promise.all(queryPromises);
+      const allQueryRecommendations = queryResults.flatMap(
+        (result) => result.recommendations || []
+      );
+      setQueryRecommendations(allQueryRecommendations.slice(0, 8)); // Limit to 8 recommendations
+
+      // Load record-based recommendations using example record IDs
+      const exampleRecordIds = ["pub_463", "pub_56", "pub_41"];
+      const recordPromises = exampleRecordIds.map((recordId) =>
+        apiService.recommendByRecord(recordId, 2).catch((err) => {
+          console.warn(
+            `Failed to get recommendations for record "${recordId}":`,
+            err
+          );
+          return { recommendations: [] };
+        })
+      );
+
+      const recordResults = await Promise.all(recordPromises);
+      const allRecordRecommendations = recordResults.flatMap(
+        (result) => result.recommendations || []
+      );
+      setRecordRecommendations(allRecordRecommendations.slice(0, 6)); // Limit to 6 recommendations
 
       // Generate AI recommendations
       try {
@@ -208,7 +240,7 @@ const EnhancedRecommendations = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {queryRecommendations.map((rec, index) => (
                   <motion.div
-                    key={index}
+                    key={rec.record?.record_id || index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -216,19 +248,24 @@ const EnhancedRecommendations = () => {
                   >
                     <div className="flex items-start space-x-3">
                       <Lightbulb className="h-5 w-5 text-yellow-500 mt-1" />
-                      <div>
+                      <div className="flex-1">
                         <h4 className="font-medium text-gray-900 mb-1">
-                          {rec.query || rec.title || "Research Query"}
+                          {rec.record?.title || "Research Study"}
                         </h4>
-                        <p className="text-sm text-gray-600">
-                          {rec.description ||
-                            "Explore this research area for insights into space biology"}
+                        <p className="text-sm text-gray-600 mb-2">
+                          {rec.record?.abstract ||
+                            "Explore this research study for insights into space biology"}
                         </p>
-                        {rec.category && (
-                          <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {rec.category}
+                        <div className="flex items-center justify-between">
+                          <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            {rec.record?.source_type || "Research Study"}
                           </span>
-                        )}
+                          {rec.similarity_score && (
+                            <span className="text-xs text-gray-500">
+                              {(rec.similarity_score * 100).toFixed(1)}% match
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -254,7 +291,7 @@ const EnhancedRecommendations = () => {
               <div className="space-y-3">
                 {recordRecommendations.map((rec, index) => (
                   <motion.div
-                    key={index}
+                    key={rec.record?.record_id || index}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
@@ -263,30 +300,29 @@ const EnhancedRecommendations = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-900 mb-1">
-                          {rec.title || "Research Record"}
+                          {rec.record?.title || "Research Record"}
                         </h4>
                         <p className="text-sm text-gray-600 mb-2">
-                          {rec.description ||
-                            rec.abstract ||
+                          {rec.record?.abstract ||
                             "Explore this research record for detailed insights"}
                         </p>
                         <div className="flex items-center space-x-4 text-xs text-gray-500">
-                          {rec.source && (
+                          {rec.record?.source && (
                             <span className="flex items-center space-x-1">
                               <BookOpen className="h-3 w-3" />
-                              <span>{rec.source}</span>
+                              <span>{rec.record.source}</span>
                             </span>
                           )}
-                          {rec.year && (
+                          {rec.record?.year && (
                             <span className="flex items-center space-x-1">
                               <Calendar className="h-3 w-3" />
-                              <span>{rec.year}</span>
+                              <span>{rec.record.year}</span>
                             </span>
                           )}
-                          {rec.authors && (
+                          {rec.record?.authors && (
                             <span className="flex items-center space-x-1">
                               <Users className="h-3 w-3" />
-                              <span>{rec.authors}</span>
+                              <span>{rec.record.authors}</span>
                             </span>
                           )}
                         </div>
