@@ -117,6 +117,37 @@ const DataSources = () => {
     },
   ];
 
+  const updateFrequency = [
+    {
+      source: "NASA Space Biology Publications",
+      frequency: "Monthly",
+      lastUpdate: "2024-01-15",
+      status: "Active",
+      color: "text-green-600",
+    },
+    {
+      source: "NSLSL",
+      frequency: "Quarterly",
+      lastUpdate: "2024-01-01",
+      status: "Active",
+      color: "text-green-600",
+    },
+    {
+      source: "NASA Task Book",
+      frequency: "Weekly",
+      lastUpdate: "2024-01-12",
+      status: "Active",
+      color: "text-green-600",
+    },
+    {
+      source: "OSDR",
+      frequency: "Monthly",
+      lastUpdate: "2024-01-10",
+      status: "Active",
+      color: "text-green-600",
+    },
+  ];
+
   // Prepare chart data
   const chartData = dataSources.map((source, index) => ({
     name: source.name.split(" ")[0], // Short name for chart
@@ -156,37 +187,6 @@ const DataSources = () => {
       icon: BookOpen,
       count: realStats ? realStats.totalPublications : 576,
       color: "text-blue-600",
-    },
-  ];
-
-  const updateFrequency = [
-    {
-      source: "NASA Space Biology Publications",
-      frequency: "Monthly",
-      lastUpdate: "2024-01-15",
-      status: "Active",
-      color: "text-green-600",
-    },
-    {
-      source: "NSLSL",
-      frequency: "Quarterly",
-      lastUpdate: "2024-01-01",
-      status: "Active",
-      color: "text-green-600",
-    },
-    {
-      source: "NASA Task Book",
-      frequency: "Weekly",
-      lastUpdate: "2024-01-12",
-      status: "Active",
-      color: "text-green-600",
-    },
-    {
-      source: "OSDR",
-      frequency: "Monthly",
-      lastUpdate: "2024-01-10",
-      status: "Active",
-      color: "text-green-600",
     },
   ];
 
