@@ -1,8 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, TrendingUp, Target, Users } from "lucide-react";
+import ServiceLoadingAnimation from "./ServiceLoadingAnimation";
+import healthCheckService from "../services/healthCheckService";
 
-const SummarySection = ({ summary }) => {
+const SummarySection = ({ summary, healthStatus }) => {
+  const [showServiceLoading, setShowServiceLoading] = useState(false);
+
+  // Check if summarizer service is healthy
+  const checkSummarizerHealth = () => {
+    const unhealthyServices = healthCheckService.getUnhealthyServices();
+
+    if (unhealthyServices.includes("summarizer")) {
+      console.log("[SummarySection] Summarizer service is unhealthy");
+      setShowServiceLoading(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  // Handle service loading animation completion
+  const handleServiceLoadingComplete = () => {
+    setShowServiceLoading(false);
+  };
   if (!summary) {
     return (
       <motion.div
@@ -96,6 +117,14 @@ const SummarySection = ({ summary }) => {
           </motion.div>
         </div>
       </div>
+
+      {/* Service Loading Animation */}
+      <ServiceLoadingAnimation
+        isVisible={showServiceLoading}
+        unhealthyServices={["summarizer"]}
+        duration={5000}
+        onComplete={handleServiceLoadingComplete}
+      />
     </motion.div>
   );
 };

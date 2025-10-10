@@ -20,6 +20,8 @@ import {
   Orbit,
 } from "lucide-react";
 import SearchSuggestions from "./SearchSuggestions";
+import ServiceLoadingAnimation from "./ServiceLoadingAnimation";
+import healthCheckService from "../services/healthCheckService";
 
 const SearchSection = ({
   searchQuery,
@@ -30,10 +32,12 @@ const SearchSection = ({
   isGeneratingAI,
   filters,
   setFilters,
+  healthStatus,
 }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isCustomCount, setIsCustomCount] = useState(false);
   const [showSearchOptions, setShowSearchOptions] = useState(true);
+  const [showServiceLoading, setShowServiceLoading] = useState(false);
 
   // Popular search suggestions
   const popularSearches = [
@@ -137,6 +141,39 @@ const SearchSection = ({
     setShowSearchOptions(false);
     handleSearch();
   };
+
+  // Check if services are healthy before allowing search
+  const checkServiceHealth = () => {
+    const unhealthyServices = healthCheckService.getUnhealthyServices();
+
+    if (unhealthyServices.length > 0) {
+      console.log(
+        "[SearchSection] Unhealthy services detected:",
+        unhealthyServices
+      );
+      setShowServiceLoading(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  // Enhanced search handler with health check
+  const handleSearchWithHealthCheck = () => {
+    if (!checkServiceHealth()) {
+      return;
+    }
+    handleSearch();
+  };
+
+  // Handle service loading animation completion
+  const handleServiceLoadingComplete = () => {
+    setShowServiceLoading(false);
+    // Retry the search after services are healthy
+    if (searchQuery.trim()) {
+      handleSearch();
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -194,7 +231,7 @@ const SearchSection = ({
           />
         </div>
         <motion.button
-          onClick={handleSearch}
+          onClick={handleSearchWithHealthCheck}
           disabled={isLoading || isGeneratingAI || !searchQuery.trim()}
           className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
           whileHover={{ scale: 1.02 }}
@@ -560,6 +597,14 @@ const SearchSection = ({
           <span>Clear Filters</span>
         </motion.button>
       </div>
+
+      {/* Service Loading Animation */}
+      <ServiceLoadingAnimation
+        isVisible={showServiceLoading}
+        unhealthyServices={healthCheckService.getUnhealthyServices()}
+        duration={5000}
+        onComplete={handleServiceLoadingComplete}
+      />
     </motion.div>
   );
 };

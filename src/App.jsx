@@ -9,6 +9,7 @@ import {
 } from "./services/api";
 import DashboardLayout from "./components/DashboardLayout";
 import { geminiService } from "./services/geminiService";
+import healthCheckService from "./services/healthCheckService";
 
 const App = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -22,6 +23,10 @@ const App = () => {
   const [useEnhancedComponents, setUseEnhancedComponents] = useState(true);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
+  const [healthStatus, setHealthStatus] = useState({
+    bionauts: { status: "unknown", lastChecked: null, isHealthy: false },
+    summarizer: { status: "unknown", lastChecked: null, isHealthy: false },
+  });
 
   // Search filters
   const [filters, setFilters] = useState({
@@ -34,6 +39,19 @@ const App = () => {
   });
 
   useEffect(() => {
+    // Initialize health check service
+    const handleHealthStatusChange = (newHealthStatus) => {
+      setHealthStatus(newHealthStatus);
+      console.log("[App] Health status updated:", newHealthStatus);
+    };
+
+    // Add listener for health status changes
+    healthCheckService.addListener(handleHealthStatusChange);
+
+    // Start periodic health checks
+    healthCheckService.startPeriodicChecks();
+
+    // Legacy API health check for backward compatibility
     const checkApiHealth = async () => {
       try {
         const response = await apiService.healthCheck();
@@ -45,6 +63,12 @@ const App = () => {
     };
 
     checkApiHealth();
+
+    // Cleanup function
+    return () => {
+      healthCheckService.removeListener(handleHealthStatusChange);
+      healthCheckService.stopPeriodicChecks();
+    };
   }, []);
 
   const handleSearch = async () => {
@@ -189,6 +213,7 @@ const App = () => {
       aiInsights={aiInsights}
       handleAIInsightsComplete={handleAIInsightsComplete}
       apiStatus={apiStatus}
+      healthStatus={healthStatus}
     />
   );
 };

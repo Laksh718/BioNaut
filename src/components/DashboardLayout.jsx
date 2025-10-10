@@ -35,6 +35,7 @@ const DashboardLayout = ({
   aiInsights,
   handleAIInsightsComplete,
   apiStatus,
+  healthStatus,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -67,6 +68,7 @@ const DashboardLayout = ({
               isGeneratingAI={isGeneratingAI}
               filters={filters}
               setFilters={setFilters}
+              healthStatus={healthStatus}
             />
             {searchResults.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -79,7 +81,10 @@ const DashboardLayout = ({
                   />
                 </div>
                 <div className="space-y-6">
-                  <SummarySection summary={summary} />
+                  <SummarySection
+                    summary={summary}
+                    healthStatus={healthStatus}
+                  />
                   <AIAnalytics
                     searchResults={searchResults}
                     searchQuery={searchQuery}
