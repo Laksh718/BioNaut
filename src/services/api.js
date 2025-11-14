@@ -863,6 +863,8 @@ export const enhancedSearch = async (query, options = {}) => {
             item.description || 
             "";
 
+          console.log(`Result ${index}: Title="${item.title?.substring(0, 50)}", Abstract length=${abstract.length}, Authors=${authors.join(', ')}, Year=${year}`);
+
           return {
             id: `external-${index}`,
             title: item.title || item.filename || `Document ${index + 1}`,
