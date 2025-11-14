@@ -584,14 +584,18 @@ export const enhanceResultsWithScraping = async (results) => {
           result.year !== null &&
           result.year.toString().length === 4;
 
-        // Check if we have an abstract
+        // Check if we have an abstract that's not just the full summary
+        // If abstract is too long (>2000 chars), it's likely the full paper, not an abstract
         const hasValidAbstract =
           result.abstract &&
-          result.abstract.length > 20 && // At least 20 characters for a valid abstract
+          result.abstract.length > 20 && 
+          result.abstract.length < 2000 && // Abstracts are typically under 2000 chars
+          result.abstract !== result.fullSummary && // Not the same as full summary
           result.abstract !== "";
 
-        // If we have all good data, skip enhancement
+        // Skip enhancement only if we have all good data AND abstract is properly sized
         if (hasValidAuthors && hasValidYear && hasValidAbstract) {
+          console.log(`✅ Result already has valid metadata, skipping extraction`);
           return result;
         }
 
@@ -603,11 +607,15 @@ export const enhanceResultsWithScraping = async (results) => {
         // NOTE: PubMed API scraping is blocked by CORS in browser, so we skip it
         // and rely on content extraction instead
 
-        // Try to extract from content or fullSummary (for authors, year, and abstract)
+        // ALWAYS try to extract from fullSummary if abstract is missing or too long
         let contentData = null;
         const contentToAnalyze = result.fullSummary || result.content;
-        if (contentToAnalyze && (!hasValidAuthors || !hasValidYear || !hasValidAbstract)) {
+        const needsAbstractExtraction = !hasValidAbstract || 
+          (result.abstract && result.abstract.length > 2000);
+        
+        if (contentToAnalyze && (!hasValidAuthors || !hasValidYear || needsAbstractExtraction)) {
           console.log(`🔄 Extracting metadata for result: ${result.title?.substring(0, 50)}`);
+          console.log(`📏 Current abstract length: ${result.abstract?.length || 0}`);
           contentData = scrapingService.extractFromContent(contentToAnalyze);
           console.log("📊 Content data extracted:", {
             authors: contentData?.authors?.length || 0,
@@ -616,16 +624,16 @@ export const enhanceResultsWithScraping = async (results) => {
           });
         }
 
-        // If abstract is missing, try to get it from content extraction, or use truncated summary
+        // Extract abstract from content if current one is missing or too long
         let enhancedAbstract = result.abstract;
-        if (!hasValidAbstract) {
+        if (needsAbstractExtraction) {
           if (contentData?.abstract) {
             enhancedAbstract = contentData.abstract;
             console.log("✅ Using extracted abstract from content, length:", enhancedAbstract.length);
           } else if (contentToAnalyze && contentToAnalyze.length > 50) {
-            // Use first 500 characters as fallback
-            enhancedAbstract = contentToAnalyze.substring(0, 500);
-            if (contentToAnalyze.length > 500) {
+            // Use first 600 characters as fallback
+            enhancedAbstract = contentToAnalyze.substring(0, 600);
+            if (contentToAnalyze.length > 600) {
               enhancedAbstract += "...";
             }
             console.log("⚠️ Using truncated content as abstract");
