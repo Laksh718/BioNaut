@@ -901,11 +901,50 @@ export const enhancedSearch = async (query, options = {}) => {
 
         if (externalResults.length > 0) {
           console.log(`Found ${externalResults.length} external results`);
-          // Enhance results with scraped metadata
-          const enhancedResults = await enhanceResultsWithScraping(
-            externalResults
+          
+          // Fetch summaries for each result to get abstract and metadata
+          const resultsWithSummaries = await Promise.all(
+            externalResults.slice(0, k).map(async (result) => {
+              try {
+                const summaryData = await getExternalSummary(result.filename);
+                if (summaryData.success && summaryData.summary) {
+                  // Extract metadata from summary
+                  const summaryText = summaryData.summary;
+                  
+                  // Try to extract year from summary
+                  const yearMatch = summaryText.match(/\b(19|20)\d{2}\b/);
+                  const extractedYear = yearMatch ? parseInt(yearMatch[0]) : null;
+                  
+                  // Try to extract authors from summary (looking for common patterns)
+                  const authorsMatch = summaryText.match(/(?:by|authors?:|written by)\s+([^.]{10,100})/i);
+                  let extractedAuthors = [];
+                  if (authorsMatch) {
+                    extractedAuthors = authorsMatch[1]
+                      .split(/[,;]/)
+                      .map(a => a.trim())
+                      .filter(a => a.length > 2 && a.length < 50)
+                      .slice(0, 5);
+                  }
+                  
+                  return {
+                    ...result,
+                    abstract: summaryText.length > 200 ? summaryText : result.abstract || summaryText,
+                    year: result.year || extractedYear,
+                    authors: result.authors || (extractedAuthors.length > 0 ? extractedAuthors : null),
+                  };
+                }
+              } catch (error) {
+                console.warn(`Failed to fetch summary for ${result.filename}:`, error);
+              }
+              return result;
+            })
           );
-          return enhancedResults.slice(0, k);
+          
+          // Enhance results with scraped metadata (for any remaining missing data)
+          const enhancedResults = await enhanceResultsWithScraping(
+            resultsWithSummaries
+          );
+          return enhancedResults;
         }
       }
     } catch (externalError) {
