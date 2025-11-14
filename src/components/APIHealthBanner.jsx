@@ -5,13 +5,14 @@ const APIHealthBanner = ({ healthStatus }) => {
   const [showBanner, setShowBanner] = useState(false);
   const hasReloadedRef = useRef(false);
   const prevHealthyRef = useRef(null);
+  const initialCheckDone = useRef(false);
 
   useEffect(() => {
-    // Check if we already reloaded in this session
-    if (sessionStorage.getItem("api_health_reloaded") === "true") {
+    // Check if we already reloaded in this session (only once on mount)
+    if (!initialCheckDone.current && sessionStorage.getItem("api_health_reloaded") === "true") {
       hasReloadedRef.current = true;
       sessionStorage.removeItem("api_health_reloaded");
-      return;
+      initialCheckDone.current = true;
     }
 
     const isHealthy = healthStatus?.bionauts?.isHealthy;
