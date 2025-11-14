@@ -27,17 +27,109 @@ export const scrapingService = {
   // Scrape PubMed/NCBI papers
   async scrapePubMed(url) {
     try {
-      // For PubMed, we can often extract info from the URL structure
+      console.log("🔍 Scraping PubMed/PMC URL:", url);
+      
+      // Check if it's a PMC article
+      const pmcMatch = url.match(/pmc\/articles\/PMC(\d+)/i);
+      if (pmcMatch) {
+        const pmcId = pmcMatch[1];
+        console.log("📄 Found PMC ID:", pmcId);
+        
+        // Fetch full article data from PMC API
+        try {
+          const response = await fetch(
+            `https://www.ncbi.nlm.nih.gov/pmc/utils/oa/oa.fcgi?id=PMC${pmcId}`
+          );
+          if (response.ok) {
+            const text = await response.text();
+            // PMC API returns XML, we'd need to parse it
+            // For now, try the efetch API instead
+          }
+        } catch (error) {
+          console.warn("PMC API failed, trying PubMed:", error);
+        }
+      }
+      
+      // For PubMed, extract ID and use eutils API
       const pubmedMatch = url.match(/pubmed\/(\d+)/);
       if (pubmedMatch) {
         const pubmedId = pubmedMatch[1];
+        console.log("📄 Found PubMed ID:", pubmedId);
 
-        // Try to fetch basic info from PubMed API
-        const response = await fetch(
+        // Fetch detailed info including abstract from PubMed API
+        const fetchResponse = await fetch(
+          `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${pubmedId}&retmode=xml&rettype=abstract`
+        );
+        
+        if (fetchResponse.ok) {
+          const xmlText = await fetchResponse.text();
+          console.log("📥 Received PubMed XML data");
+          
+          // Parse XML to extract metadata
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+          
+          // Extract authors
+          const authorNodes = xmlDoc.getElementsByTagName("Author");
+          const authors = [];
+          for (let i = 0; i < authorNodes.length; i++) {
+            const lastName = authorNodes[i].getElementsByTagName("LastName")[0]?.textContent;
+            const initials = authorNodes[i].getElementsByTagName("Initials")[0]?.textContent;
+            if (lastName) {
+              authors.push(`${lastName} ${initials || ""}`.trim());
+            }
+          }
+          
+          // Extract abstract
+          const abstractNodes = xmlDoc.getElementsByTagName("AbstractText");
+          let abstract = "";
+          for (let i = 0; i < abstractNodes.length; i++) {
+            const label = abstractNodes[i].getAttribute("Label");
+            const text = abstractNodes[i].textContent;
+            if (label) {
+              abstract += `${label}: ${text} `;
+            } else {
+              abstract += text + " ";
+            }
+          }
+          
+          // Extract year
+          const pubDateNode = xmlDoc.getElementsByTagName("PubDate")[0];
+          let year = null;
+          if (pubDateNode) {
+            const yearNode = pubDateNode.getElementsByTagName("Year")[0];
+            if (yearNode) {
+              year = parseInt(yearNode.textContent);
+            }
+          }
+          
+          // Extract title
+          const titleNode = xmlDoc.getElementsByTagName("ArticleTitle")[0];
+          const title = titleNode?.textContent || null;
+          
+          console.log("✅ Scraped from PubMed:", {
+            authors: authors.length,
+            abstractLength: abstract.length,
+            year
+          });
+          
+          if (authors.length > 0 || abstract.length > 0) {
+            return {
+              authors: authors.length > 0 ? authors : null,
+              year: year,
+              title: title,
+              abstract: abstract.trim() || null,
+              source: "pubmed_api",
+            };
+          }
+        }
+
+        // Fallback to summary API if efetch fails
+        const summaryResponse = await fetch(
           `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${pubmedId}&retmode=json`
         );
-        if (response.ok) {
-          const data = await response.json();
+        if (summaryResponse.ok) {
+          const data = await summaryResponse.json();
           const result = data.result[pubmedId];
 
           if (result) {
@@ -51,6 +143,7 @@ export const scrapingService = {
               title: result.title || null,
               journal: result.source || null,
               doi: result.elocationid || null,
+              source: "pubmed_summary",
             };
           }
         }
@@ -252,6 +345,9 @@ export const scrapingService = {
     try {
       if (!content || typeof content !== "string") return null;
 
+      console.log("🔍 Extracting from content, length:", content.length);
+      console.log("🔍 First 500 chars:", content.substring(0, 500));
+
       const authors = [];
       let abstract = null;
       
@@ -361,11 +457,14 @@ export const scrapingService = {
 
             if (authorList.length > 0) {
               authors.push(...authorList);
+              console.log("✅ Found authors:", authors);
               break;
             }
           }
         }
       }
+
+      console.log("📝 Extracted - Authors:", authors.length, "Abstract length:", abstract?.length || 0, "Year:", year);
 
       return {
         authors: authors.length > 0 ? authors : null,
@@ -480,32 +579,59 @@ export const enhanceResultsWithScraping = async (results) => {
           ? scrapingService.extractFromFilename(result.filename)
           : null;
 
+        // If result has a link to PubMed/PMC, try scraping it for structured data
+        let scrapedData = null;
+        if (result.link && (result.link.includes('pubmed') || result.link.includes('pmc'))) {
+          console.log(`🔗 Attempting to scrape link: ${result.link}`);
+          scrapedData = await scrapingService.extractPaperMetadata(result.link);
+          console.log("📊 Scraped data:", {
+            authors: scrapedData?.authors?.length || 0,
+            year: scrapedData?.year,
+            abstractLength: scrapedData?.abstract?.length || 0,
+            source: scrapedData?.source
+          });
+        }
+
         // Try to extract from content (for authors, year, and abstract)
         let contentData = null;
         if (result.content && (!hasValidAuthors || !hasValidYear || !hasValidAbstract)) {
+          console.log(`🔄 Extracting metadata for result: ${result.title?.substring(0, 50)}`);
           contentData = scrapingService.extractFromContent(result.content);
+          console.log("📊 Content data extracted:", {
+            authors: contentData?.authors?.length || 0,
+            year: contentData?.year,
+            abstractLength: contentData?.abstract?.length || 0
+          });
         }
 
-        // If abstract is missing, try to get it from content extraction or use first part of content
+        // If abstract is missing, try to get it from scraped data, content extraction, or use first part of content
         let enhancedAbstract = result.abstract;
         if (!hasValidAbstract) {
-          if (contentData?.abstract) {
+          if (scrapedData?.abstract) {
+            enhancedAbstract = scrapedData.abstract;
+            console.log("✅ Using scraped abstract from PubMed, length:", enhancedAbstract.length);
+          } else if (contentData?.abstract) {
             enhancedAbstract = contentData.abstract;
+            console.log("✅ Using extracted abstract from content, length:", enhancedAbstract.length);
           } else if (result.fullSummary && result.fullSummary.length > 50) {
             enhancedAbstract = result.fullSummary;
+            console.log("⚠️ Using fullSummary as abstract, length:", enhancedAbstract.length);
           } else if (result.content && result.content.length > 50) {
             // Use first 500 characters of content as abstract
             enhancedAbstract = result.content.substring(0, 500);
             if (result.content.length > 500) {
               enhancedAbstract += "...";
             }
+            console.log("⚠️ Using truncated content as abstract");
           }
         }
 
-        // We'll NOT use scraping (CORS blocks it) or fallback data
-        // Only use what we can extract from filename/content or keep original
+        // We'll NOT use fallback data
+        // Priority: scraped data (from PubMed API) > filename > content extraction > original
         const finalAuthors = hasValidAuthors
           ? result.authors
+          : scrapedData?.authors?.length > 0
+          ? scrapedData.authors
           : filenameData?.authors?.length > 0
           ? filenameData.authors
           : contentData?.authors?.length > 0
@@ -514,7 +640,8 @@ export const enhanceResultsWithScraping = async (results) => {
 
         const finalYear = hasValidYear
           ? result.year
-          : filenameData?.year ||
+          : scrapedData?.year ||
+            filenameData?.year ||
             contentData?.year ||
             result.year ||
             new Date().getFullYear();
