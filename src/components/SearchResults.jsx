@@ -129,16 +129,28 @@ const SearchResults = ({
                     {result.title}
                   </h3>
 
-                  {/* Abstract/Summary - Only show if content exists */}
-                  {(result.abstract || result.summary || result.content) && (
-                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                      <p className="text-gray-700 text-sm leading-relaxed">
-                        {result.abstract || result.summary || result.content}
-                      </p>
-                    </div>
-                  )}
+                  {/* Authors and Year - Prominent Display */}
+                  <div className="flex items-center space-x-4 text-sm mb-3">
+                    {result.authors && (
+                      <div className="flex items-center space-x-1 text-gray-700">
+                        <User className="h-4 w-4" />
+                        <span className="font-medium">
+                          {Array.isArray(result.authors)
+                            ? result.authors.slice(0, 3).join(", ") +
+                              (result.authors.length > 3 ? " et al." : "")
+                            : result.authors}
+                        </span>
+                      </div>
+                    )}
+                    {result.year && (
+                      <div className="flex items-center space-x-1 text-gray-700">
+                        <Calendar className="h-4 w-4" />
+                        <span className="font-medium">{result.year}</span>
+                      </div>
+                    )}
+                  </div>
 
-                  {/* Essential Details */}
+                  {/* Source and Score Details */}
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                     {result.source && (
                       <div className="flex items-center space-x-1">
@@ -155,23 +167,6 @@ const SearchResults = ({
                       <div className="flex items-center space-x-1">
                         <span className="text-blue-600 font-medium">
                           Score: {(result.relevance_score * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    {result.year && (
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{result.year}</span>
-                      </div>
-                    )}
-                    {result.authors && (
-                      <div className="flex items-center space-x-1">
-                        <User className="h-4 w-4" />
-                        <span className="line-clamp-1">
-                          {Array.isArray(result.authors)
-                            ? result.authors.slice(0, 2).join(", ") +
-                              (result.authors.length > 2 ? " et al." : "")
-                            : result.authors}
                         </span>
                       </div>
                     )}
