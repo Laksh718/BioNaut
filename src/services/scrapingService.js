@@ -437,8 +437,12 @@ export const scrapingService = {
 
       // Try to extract authors from content patterns - improved for academic papers
       const authorPatterns = [
+        // Pattern: Authors before "Reviewed by" section (e.g., "John Doe et al.\nReviewed by:")
+        /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)\s*(?:\n|$).*?reviewed by/im,
         // Pattern: Names followed by affiliations with numbers (e.g., "John Doe1, Jane Smith2")
         /^([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]+(?:[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]*){1,20})/m,
+        // Pattern: Multiple authors at start of document "Willie B, Smith A, Jones C"
+        /^([A-Z][a-z]+\s+[A-Z]{1,2}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,2}){1,15})(?:\s*\n|\s*$)/m,
         // Pattern: "Authors: John Doe, Jane Smith"
         /(?:authors?|contributors?)[:\s]+([A-Z][^\n]{10,250})/i,
         // Pattern: Academic citation format "Doe J, Smith A, Brown C"
@@ -454,11 +458,16 @@ export const scrapingService = {
         if (match && match[1]) {
           let authorText = match[1].trim();
           
-          // Remove common non-author text
+          // Remove reviewer information and affiliations
           authorText = authorText
-            .replace(/\b(and|et al\.?|corresponding author|affiliations?|department|university|institute)\b/gi, '')
+            .replace(/\b(reviewed by|edited by|editor|reviewer)[:\s]+.*/gi, '') // Remove "Reviewed by:" sections
+            .replace(/\b(national research council|university|institute|college|laboratory|dept\.?|department)[^,]*/gi, '') // Remove institutional affiliations
+            .replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '') // Remove common non-author text
+            .replace(/,\s*[A-Z]{2,}(?:\s|,|$)/g, '') // Remove country codes (USA, UK, etc.)
+            .replace(/\([^)]*\)/g, '') // Remove parenthetical content
             .replace(/\d+/g, '') // Remove affiliation numbers
             .replace(/[*†‡§¶]/g, '') // Remove special markers
+            .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
           
           if (authorText.length > 5 && authorText.length < 300) {
@@ -467,12 +476,13 @@ export const scrapingService = {
               .split(/[,;]|(?:\s+and\s+)/)
               .map((author) => author.trim())
               .filter((author) => {
-                // Filter out invalid authors
+                // Filter out invalid authors and reviewers
                 return author.length > 3 && 
                        author.length < 50 && 
                        /[A-Z]/.test(author) && // Must have capital letter
                        !/^\d+$/.test(author) && // Not just numbers
-                       !/^(the|for|from|with|this|that|plos|one|doi|http)$/i.test(author); // Not common words
+                       !/^(the|for|from|with|this|that|plos|one|doi|http|italy|usa|uk|cnr)$/i.test(author) && // Not common words or countries
+                       !/(reviewed|editor|national|research|council)/i.test(author); // Not reviewer/affiliation text
               })
               .slice(0, 10); // Limit to 10 authors
 
