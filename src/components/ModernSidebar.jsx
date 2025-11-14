@@ -63,7 +63,7 @@ const ModernSidebar = ({
     },
     {
       id: "ai",
-      label: "AI Insights",
+      label: "HackerNaut AI Insights",
       icon: Sparkles,
       gradient: "from-indigo-500 to-purple-500",
       description: "Smart Analysis",
@@ -322,7 +322,7 @@ const ModernSidebar = ({
                     />
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900">
-                        AI Analysis
+                        HackerNaut AI Analysis
                       </div>
                       <div className="text-xs text-gray-600">
                         Generating Insights...

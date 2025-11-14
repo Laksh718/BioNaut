@@ -65,20 +65,12 @@ export const geminiService = {
   },
   // Enhanced search analytics
   async analyzeSearchResults(searchQuery, results) {
-    console.log("Gemini API called with:", {
-      searchQuery,
-      resultsLength: results?.length || 0,
-    });
-
     // Safety check for results
     if (!results || !Array.isArray(results)) {
-      console.log("No results provided, using fallback");
       return this.generateFallbackAnalysis(searchQuery, []);
     }
 
     // Always try to use Gemini API first
-    console.log("Attempting to use Gemini API for analysis");
-
     try {
       const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash",

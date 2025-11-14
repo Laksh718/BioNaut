@@ -127,10 +127,10 @@ const MainLayout = ({
                   </motion.div>
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  AI Insights Ready
+                  HackerNaut AI Insights Ready
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Click the button below to view detailed AI analysis of your
+                  Click the button below to view detailed HackerNaut AI analysis of your
                   search results
                 </p>
                 <motion.button
@@ -139,14 +139,14 @@ const MainLayout = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  View AI Analysis
+                  View HackerNaut AI Analysis
                 </motion.button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* AI Insights Modal */}
+        {/* HackerNaut AI Insights Modal */}
         <AIInsights
           searchQuery={searchQuery}
           results={searchResults}

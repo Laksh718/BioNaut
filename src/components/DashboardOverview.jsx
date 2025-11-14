@@ -336,7 +336,7 @@ const DashboardOverview = ({
         </motion.div>
       )}
 
-      {/* AI Insights */}
+      {/* HackerNaut AI Insights */}
       {showAIInsights && aiInsights && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}

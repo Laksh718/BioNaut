@@ -856,7 +856,7 @@ const AIInsights = ({
                 />
               </motion.div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Generating AI Insights
+                Generating HackerNaut AI Insights
               </h3>
               <p className="text-gray-600 mb-6">
                 Analyzing your search results with AI...
@@ -880,7 +880,7 @@ const AIInsights = ({
                 <Brain className="h-8 w-8 text-white" />
               </motion.div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Generate AI Insights
+                Generate HackerNaut AI Insights
               </h3>
               <p className="text-gray-600 mb-6">
                 Get advanced analysis of your search results using AI
@@ -932,7 +932,7 @@ const AIInsights = ({
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2">
                         <Lightbulb className="h-5 w-5 text-yellow-500" />
-                        <span>AI Analysis Results</span>
+                        <span>HackerNaut AI Analysis Results</span>
                       </h3>
                       <div className="prose max-w-none">
                         <div className="bg-white p-6 rounded-lg border">

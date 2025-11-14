@@ -32,26 +32,20 @@ const Recommendations = () => {
     setUsingFallback(false);
 
     try {
-      console.log("Getting recommendations for query:", query);
-      console.log("Number of recommendations requested:", numRecommendations);
       const response = await apiService.recommendByQuery(
         query,
         numRecommendations
       );
-      console.log("Recommendations response:", response);
 
       // Check if using fallback data
       if (response.fallback) {
         setUsingFallback(true);
-        console.log("Using fallback recommendations");
       }
 
       if (response.recommendations && response.recommendations.length > 0) {
-        console.log("Raw recommendations:", response.recommendations);
         const formattedResults = formatRecommendationResults(
           response.recommendations
         );
-        console.log("Formatted results:", formattedResults);
         setRecommendations(formattedResults);
       } else {
         setRecommendations([]);
@@ -60,8 +54,6 @@ const Recommendations = () => {
         );
       }
     } catch (error) {
-      console.error("Recommendation error:", error);
-      console.error("Error details:", error.response?.data || error.message);
       setError(
         error.message || "Failed to get recommendations. Please try again."
       );
@@ -78,26 +70,20 @@ const Recommendations = () => {
     setUsingFallback(false);
 
     try {
-      console.log("Getting recommendations for record:", recordId);
-      console.log("Number of recommendations requested:", numRecommendations);
       const response = await apiService.recommendByRecord(
         recordId,
         numRecommendations
       );
-      console.log("Record recommendations response:", response);
 
       // Check if using fallback data
       if (response.fallback) {
         setUsingFallback(true);
-        console.log("Using fallback recommendations");
       }
 
       if (response.recommendations && response.recommendations.length > 0) {
-        console.log("Raw recommendations:", response.recommendations);
         const formattedResults = formatRecommendationResults(
           response.recommendations
         );
-        console.log("Formatted results:", formattedResults);
         setRecommendations(formattedResults);
       } else {
         setRecommendations([]);
@@ -106,8 +92,6 @@ const Recommendations = () => {
         );
       }
     } catch (error) {
-      console.error("Record recommendation error:", error);
-      console.error("Error details:", error.response?.data || error.message);
       setError(
         error.message || "Failed to get related studies. Please try again."
       );

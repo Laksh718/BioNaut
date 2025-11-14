@@ -4,22 +4,34 @@ import { motion, AnimatePresence } from "framer-motion";
 const APIHealthBanner = ({ healthStatus }) => {
   const [showBanner, setShowBanner] = useState(false);
   const [wasUnhealthy, setWasUnhealthy] = useState(false);
+  const [hasReloaded, setHasReloaded] = useState(false);
 
   useEffect(() => {
+    // Check if we just reloaded due to health recovery
+    const reloadFlag = sessionStorage.getItem('api_health_reloaded');
+    if (reloadFlag === 'true') {
+      // Clear the flag and don't show banner or reload again
+      sessionStorage.removeItem('api_health_reloaded');
+      setHasReloaded(true);
+      return;
+    }
+
     const bionautsUnhealthy = !healthStatus.bionauts.isHealthy;
 
     // Show banner if bionauts API is unhealthy
     if (bionautsUnhealthy) {
       setShowBanner(true);
       setWasUnhealthy(true);
-    } else if (wasUnhealthy && healthStatus.bionauts.isHealthy) {
-      // If it was unhealthy and now healthy, reload the page
-      console.log("API is now healthy, reloading page...");
+    } else if (wasUnhealthy && healthStatus.bionauts.isHealthy && !hasReloaded) {
+      // If it was unhealthy and now healthy, reload the page ONCE
+      console.log("[API Status] API is now healthy, reloading page...");
+      // Set flag before reloading
+      sessionStorage.setItem('api_health_reloaded', 'true');
       setTimeout(() => {
         window.location.reload();
       }, 1000); // Small delay to show the status change
     }
-  }, [healthStatus.bionauts.isHealthy, wasUnhealthy]);
+  }, [healthStatus.bionauts.isHealthy, wasUnhealthy, hasReloaded]);
 
   if (!showBanner) return null;
 

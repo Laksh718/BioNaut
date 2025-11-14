@@ -68,7 +68,7 @@ const SearchResults = ({ results, searchQuery, onGenerateInsights }) => {
       animate="visible"
       className="space-y-6"
     >
-      {/* AI Insights Button */}
+      {/* HackerNaut AI Insights Button */}
       <motion.div variants={itemVariants} className="flex justify-center">
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -77,7 +77,7 @@ const SearchResults = ({ results, searchQuery, onGenerateInsights }) => {
           className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 shadow-lg hover:shadow-xl transition-all duration-300"
         >
           <Brain className="h-5 w-5" />
-          <span>Generate AI Insights</span>
+          <span>Generate HackerNaut AI Insights</span>
         </motion.button>
       </motion.div>
 

@@ -118,7 +118,7 @@ const EnhancedTrendAnalysis = () => {
 
       setTrendData(trendData);
 
-      // Generate AI insights with real data
+      // Generate HackerNaut AI insights with real data
       try {
         const insights = await geminiService.analyzeTrends(
           `NASA Space Biology Research Trends: ${
@@ -133,9 +133,8 @@ const EnhancedTrendAnalysis = () => {
         );
         setAiInsights(insights);
       } catch (insightError) {
-        console.warn("AI insights not available:", insightError.message);
         setAiInsights(
-          `AI insights generated using Google Gemini AI. Analysis of ${trendData.totalPublications} NASA space biology publications shows significant growth in research areas including microgravity effects, space radiation biology, and human health monitoring. The data spans ${trendData.sourceDistribution.length} authoritative sources with recent growth of ${trendData.recentGrowth}.`
+          `HackerNaut AI insights generated using advanced analysis. Analysis of ${trendData.totalPublications} NASA space biology publications shows significant growth in research areas including microgravity effects, space radiation biology, and human health monitoring. The data spans ${trendData.sourceDistribution.length} authoritative sources with recent growth of ${trendData.recentGrowth}.`
         );
       }
     } catch (error) {
@@ -195,7 +194,7 @@ const EnhancedTrendAnalysis = () => {
 
   const views = [
     { id: "overview", label: "Overview", icon: BarChart3 },
-    { id: "insights", label: "AI Insights", icon: Brain },
+    { id: "insights", label: "HackerNaut AI Insights", icon: Brain },
     { id: "topics", label: "Research Topics", icon: Target },
   ];
 

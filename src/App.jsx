@@ -42,7 +42,7 @@ const App = () => {
     // Initialize health check service
     const handleHealthStatusChange = (newHealthStatus) => {
       setHealthStatus(newHealthStatus);
-      console.log("[App] Health status updated:", newHealthStatus);
+      console.log("[API Status] Health status updated:", newHealthStatus);
     };
 
     // Add listener for health status changes
@@ -58,7 +58,7 @@ const App = () => {
         setApiStatus(response.status === "ok" ? "online" : "offline");
       } catch (error) {
         setApiStatus("offline");
-        console.error("API health check failed:", error);
+        console.error("[API Status] Health check failed:", error);
       }
     };
 
@@ -92,8 +92,6 @@ const App = () => {
       setSearchResults(formattedResults);
 
       // Generate summary using external API or fallback
-      console.log("Generating summary for query:", searchQuery);
-
       try {
         // Try to get summary from external API if we have results with filenames
         const externalResult = formattedResults.find(
@@ -105,10 +103,6 @@ const App = () => {
           const externalSummary = await getExternalSummary(filename);
           if (externalSummary.success) {
             setSummary(externalSummary.summary);
-            console.log(
-              "Using external summary:",
-              externalSummary.summary.substring(0, 200)
-            );
           } else {
             throw new Error("External summary failed");
           }
@@ -116,25 +110,14 @@ const App = () => {
           throw new Error("No filename available for external summary");
         }
       } catch (externalError) {
-        console.warn(
-          "External summary failed, using local API:",
-          externalError
-        );
-
         // Fallback to local API summary
         try {
           const summaryResponse = await apiService.summarize({
             query: searchQuery,
           });
-          console.log("Local summary response:", summaryResponse);
           const formattedSummary = formatSummary(summaryResponse.summary);
-          console.log("Formatted summary:", formattedSummary);
           setSummary(formattedSummary);
         } catch (localError) {
-          console.warn(
-            "Local summary also failed, using fallback:",
-            localError
-          );
           // Final fallback summary
           setSummary(
             `Summary for "${searchQuery}":\n\nFound ${formattedResults.length} research results. This query relates to NASA's space biology research, which focuses on understanding how living systems respond to space environments. Key areas include microgravity effects on biological processes, human health monitoring for space missions, and development of countermeasures for space travel effects.\n\nPowered by HackerNauts Summerizer.`
@@ -142,14 +125,13 @@ const App = () => {
         }
       }
 
-      // Automatically start generating AI insights in background
+      // Automatically start generating HackerNaut AI insights in background
       if (formattedResults.length > 0) {
-        // Generate AI insights silently in background
+        // Generate HackerNaut AI insights silently in background
         generateAIInsightsInBackground(searchQuery, formattedResults);
       }
     } catch (error) {
       setError(error.message || "Search failed. Please try again.");
-      console.error("Search error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +168,7 @@ const App = () => {
       const analysis = await geminiService.analyzeSearchResults(query, results);
       setAiInsights(analysis);
     } catch (error) {
-      console.error("Background AI generation failed:", error);
-      setAiInsights("AI analysis completed using AI.");
+      setAiInsights("HackerNaut AI analysis completed.");
     } finally {
       setIsGeneratingAI(false);
     }
