@@ -435,72 +435,80 @@ export const scrapingService = {
         }
       }
 
-      // Try to extract authors from content patterns - improved for academic papers
-      // First, look specifically in the first 1000 chars (where authors are usually listed)
-      const earlyContent = content.substring(0, 1000);
-      console.log("🔍 Searching for authors in early content (first 1000 chars)");
+      // Try to extract authors from content patterns - simplified approach
+      // Look in first 1500 chars where authors are typically listed
+      const earlyContent = content.substring(0, 1500);
+      console.log("🔍 Searching for authors in first 1500 chars");
+      console.log("📄 Content preview:", earlyContent.substring(0, 300));
       
-      const authorPatterns = [
-        // Pattern: Multiple full names with optional numbers "Bing Zhang 1, Esther Cory 2"
-        /([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*\d*[,✉\s]*(?:,\s*[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*\d*[,✉\s]*){1,20})/,
-        // Pattern: Authors before "Reviewed by" section
-        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)[\n\s]+.*?reviewed by/i,
-        // Pattern: "Authors: John Doe, Jane Smith"
-        /(?:authors?|contributors?)[:\s]+([A-Z][^\n]{10,250})/i,
-      ];
-
-      // Try patterns on early content first (more reliable)
-      for (let i = 0; i < authorPatterns.length; i++) {
-        const pattern = authorPatterns[i];
-        const match = earlyContent.match(pattern);
+      // Split into lines and look for author line
+      const lines = earlyContent.split('\n');
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
         
-        if (match && match[1]) {
-          console.log(`📋 Pattern ${i + 1} matched:`, match[1].substring(0, 100));
-          let authorText = match[1].trim();
+        // Skip empty lines or very short lines
+        if (line.length < 10) continue;
+        
+        // Look for lines with multiple names (2+ occurrences of "Capital word Capital word")
+        // Example: "Bing Zhang 1, Esther Cory 2, Robert Sah 4"
+        const nameMatches = line.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/g);
+        
+        if (nameMatches && nameMatches.length >= 2) {
+          console.log(`📋 Found line with ${nameMatches.length} names:`, line.substring(0, 150));
           
-          // Remove reviewer information and affiliations
-          authorText = authorText
-            .replace(/\b(reviewed by|edited by|editor|reviewer)[:\s]+.*/gi, '') // Remove "Reviewed by:" sections
-            .replace(/\b(national research council|university|institute|college|laboratory|dept\.?|department)[^,]*/gi, '') // Remove institutional affiliations
-            .replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '') // Remove common non-author text
-            .replace(/,\s*[A-Z]{2,}(?:\s|,|$)/g, '') // Remove country codes
-            .replace(/\([^)]*\)/g, '') // Remove parenthetical content
+          // Clean the line
+          let authorText = line
+            .replace(/\b(reviewed by|edited by|affiliation|department|university|institute).*$/gi, '') // Remove affiliation info
             .replace(/[✉]/g, '') // Remove email symbols
-            .replace(/\d+/g, '') // Remove affiliation numbers
-            .replace(/[*†‡§¶]/g, '') // Remove special markers
-            .replace(/\s+/g, ' ') // Normalize whitespace
+            .replace(/\d+/g, '') // Remove numbers
+            .replace(/[*†‡§¶]/g, '') // Remove markers
+            .replace(/\s+/g, ' ')
             .trim();
           
-          console.log("🧹 After cleaning:", authorText.substring(0, 100));
+          console.log("🧹 Cleaned text:", authorText);
           
-          if (authorText.length > 10 && authorText.length < 300) {
-            // Split by common separators
-            const authorList = authorText
-              .split(/[,;]/)
-              .map((author) => author.trim())
-              .filter((author) => {
-                // Filter out invalid authors
-                const isValid = author.length > 3 && 
-                       author.length < 50 && 
-                       /[A-Z][a-z]+\s+[A-Z]/.test(author) && // Has at least "Name N" pattern
-                       !/^\d+$/.test(author) && // Not just numbers
-                       !/^(the|for|from|with|this|that|plos|one|doi|http|italy|usa|uk|cnr)$/i.test(author) && // Not common words
-                       !/(reviewed|editor|national|research|council|university|institute)/i.test(author); // Not institutional text
-                
-                if (!isValid && author.length > 0) {
-                  console.log("❌ Filtered out:", author);
-                }
-                return isValid;
-              })
-              .slice(0, 10); // Limit to 10 authors
-
-            console.log("📊 Author list after filtering:", authorList);
-
-            if (authorList.length >= 1) { // Accept even 1 author if found
-              authors.push(...authorList);
-              console.log("✅ Found authors:", authors);
-              break;
-            }
+          // Split by comma to get individual authors
+          const authorList = authorText
+            .split(',')
+            .map(a => a.trim())
+            .filter(a => {
+              // Must have at least "FirstName LastName" format
+              const isValid = /^[A-Z][a-z]+\s+[A-Z][a-z]+((\s+[A-Z])?[a-z]*)?$/.test(a) &&
+                             a.length > 5 && 
+                             a.length < 50 &&
+                             !/(reviewed|edited|university|institute|national)/i.test(a);
+              
+              if (a.length > 0) {
+                console.log(`  ${isValid ? '✅' : '❌'} "${a}"`);
+              }
+              return isValid;
+            });
+          
+          if (authorList.length >= 2) {
+            authors.push(...authorList);
+            console.log("✅ Final authors:", authors);
+            break;
+          }
+        }
+      }
+      
+      // Fallback: if no authors found, try simple pattern on whole early content
+      if (authors.length === 0) {
+        console.log("⚠️ No authors found in line-by-line search, trying fallback patterns");
+        const simpleMatch = earlyContent.match(/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s*,\s*[A-Z][a-z]+\s+[A-Z][a-z]+){1,10})/);
+        if (simpleMatch) {
+          console.log("� Fallback pattern matched:", simpleMatch[1]);
+          const fallbackAuthors = simpleMatch[1]
+            .replace(/\d+/g, '')
+            .split(',')
+            .map(a => a.trim())
+            .filter(a => a.length > 5 && /[A-Z][a-z]+\s+[A-Z]/.test(a))
+            .slice(0, 10);
+          
+          if (fallbackAuthors.length > 0) {
+            authors.push(...fallbackAuthors);
+            console.log("✅ Fallback authors:", authors);
           }
         }
       }
