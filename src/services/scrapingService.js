@@ -255,25 +255,41 @@ export const scrapingService = {
       const authors = [];
       let abstract = null;
       
-      // Try to extract abstract from content
+      // Try to extract abstract from content - improved for academic papers
       const abstractPatterns = [
-        /abstract[:\s]+([^]*?)(?:\n\n|introduction|keywords|background)/i,
-        /summary[:\s]+([^]*?)(?:\n\n|introduction|keywords|background)/i,
-        /^([^]*?)(?:\n\n|introduction|keywords|background)/i, // First paragraph
+        // Pattern: "Abstract" followed by content until next section
+        /abstract[:\s\n]+([^]*?)(?:\n\s*(?:introduction|background|keywords|methods|results|1\.|key words|abbreviations|funding|©|copyright)\b)/i,
+        // Pattern: Summary section
+        /summary[:\s\n]+([^]*?)(?:\n\s*(?:introduction|background|keywords|methods|results|1\.))/i,
+        // Pattern: Text between title and "Introduction"
+        /\n\n([^]*?)(?:\n\s*introduction\b)/i,
       ];
       
       for (const pattern of abstractPatterns) {
         const match = content.match(pattern);
-        if (match && match[1] && match[1].length > 50 && match[1].length < 2000) {
-          abstract = match[1].trim();
-          break;
+        if (match && match[1]) {
+          let extractedAbstract = match[1].trim();
+          // Remove common header/footer elements
+          extractedAbstract = extractedAbstract
+            .replace(/PLOS ONE.*?\d+\s*\/\s*\d+/g, '') // Remove PLOS headers
+            .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
+            .replace(/\bPMC\d+\b/g, '') // Remove PMC IDs
+            .replace(/\bDOI:.*?\n/g, '') // Remove DOI lines
+            .trim();
+          
+          if (extractedAbstract.length > 100 && extractedAbstract.length < 3000) {
+            abstract = extractedAbstract;
+            break;
+          }
         }
       }
       
-      // If no abstract found, use first 500 chars
-      if (!abstract && content.length > 50) {
-        abstract = content.substring(0, 500);
-        if (content.length > 500) {
+      // If no abstract found, use first meaningful paragraph (skip headers/footers)
+      if (!abstract && content.length > 100) {
+        // Skip first 200 chars (likely title/header), then take next 500 chars
+        const startPos = Math.min(200, content.length / 4);
+        abstract = content.substring(startPos, startPos + 500).trim();
+        if (content.length > startPos + 500) {
           abstract += "...";
         }
       }
@@ -302,37 +318,44 @@ export const scrapingService = {
         }
       }
 
-      // Try to extract authors from content patterns - improved patterns
+      // Try to extract authors from content patterns - improved for academic papers
       const authorPatterns = [
+        // Pattern: Names followed by affiliations with numbers (e.g., "John Doe1, Jane Smith2")
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]+(?:[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]*){1,20})/m,
         // Pattern: "Authors: John Doe, Jane Smith"
-        /authors?[:\s]+([^\n]{10,200})/i,
+        /(?:authors?|contributors?)[:\s]+([A-Z][^\n]{10,250})/i,
+        // Pattern: Academic citation format "Doe J, Smith A, Brown C"
+        /^([A-Z][a-z]+\s+[A-Z]{1,3}(?:[,;\s]+[A-Z][a-z]+\s+[A-Z]{1,3}){1,15})/m,
         // Pattern: "By John Doe, Jane Smith"  
-        /\bby[:\s]+([^\n]{10,150})/i,
-        // Pattern: Names at start with potential affiliations
-        /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:[,;]\s+[A-Z][a-z]+\s+[A-Z][a-z]+){0,10})/m,
-        // Pattern: "Doe, J.A., Smith, B.C."
-        /([A-Z][a-z]+,\s*[A-Z]\.\s*[A-Z]?\.?(?:[,;]\s*[A-Z][a-z]+,\s*[A-Z]\.\s*[A-Z]?\.?){0,10})/,
+        /\bby[:\s]+([A-Z][^\n]{10,200})/i,
+        // Pattern: "Davis BA, Sipe B, Gershan LA" format (Last First-Initial)
+        /\b([A-Z][a-z]+\s+[A-Z]{1,3}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,3}){2,15})\b/,
       ];
 
       for (const pattern of authorPatterns) {
         const match = content.match(pattern);
         if (match && match[1]) {
           let authorText = match[1].trim();
-          // Remove common non-author words
-          authorText = authorText.replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '');
           
-          if (authorText.length > 3 && authorText.length < 300) {
+          // Remove common non-author text
+          authorText = authorText
+            .replace(/\b(and|et al\.?|corresponding author|affiliations?|department|university|institute)\b/gi, '')
+            .replace(/\d+/g, '') // Remove affiliation numbers
+            .replace(/[*†‡§¶]/g, '') // Remove special markers
+            .trim();
+          
+          if (authorText.length > 5 && authorText.length < 300) {
             // Split by common separators
             const authorList = authorText
               .split(/[,;]|(?:\s+and\s+)/)
               .map((author) => author.trim())
               .filter((author) => {
                 // Filter out invalid authors
-                return author.length > 2 && 
+                return author.length > 3 && 
                        author.length < 50 && 
                        /[A-Z]/.test(author) && // Must have capital letter
                        !/^\d+$/.test(author) && // Not just numbers
-                       !/^(the|for|from|with|this|that)$/i.test(author); // Not common words
+                       !/^(the|for|from|with|this|that|plos|one|doi|http)$/i.test(author); // Not common words
               })
               .slice(0, 10); // Limit to 10 authors
 
