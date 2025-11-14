@@ -803,6 +803,11 @@ export const enhancedSearch = async (query, options = {}) => {
       if (externalResponse.ok) {
         const externalData = await externalResponse.json();
         console.log("External API search results:", externalData);
+        
+        // Log first result to see structure
+        if (externalData.results && externalData.results.length > 0) {
+          console.log("First result structure:", externalData.results[0]);
+        }
 
         // Handle different response formats from external API
         let resultsArray = [];
@@ -822,6 +827,12 @@ export const enhancedSearch = async (query, options = {}) => {
 
         // Format external results to match our expected structure
         const externalResults = resultsArray.map((item, index) => {
+          // Log all available fields for first result
+          if (index === 0) {
+            console.log("Available fields in item:", Object.keys(item));
+            console.log("Full item data:", item);
+          }
+          
           // Extract real authors from various possible fields
           let authors = [];
           if (item.authors && Array.isArray(item.authors)) {
