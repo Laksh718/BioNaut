@@ -18,18 +18,23 @@ const APIHealthBanner = ({ healthStatus }) => {
 
     const bionautsUnhealthy = !healthStatus.bionauts.isHealthy;
 
-    // Show banner if bionauts API is unhealthy
+    // Show banner ONLY if bionauts API is unhealthy
     if (bionautsUnhealthy) {
       setShowBanner(true);
       setWasUnhealthy(true);
-    } else if (wasUnhealthy && healthStatus.bionauts.isHealthy && !hasReloaded) {
+    } else {
+      // Hide banner when healthy
+      setShowBanner(false);
+      
       // If it was unhealthy and now healthy, reload the page ONCE
-      console.log("[API Status] API is now healthy, reloading page...");
-      // Set flag before reloading
-      sessionStorage.setItem('api_health_reloaded', 'true');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000); // Small delay to show the status change
+      if (wasUnhealthy && !hasReloaded) {
+        console.log("[API Status] API is now healthy, reloading page...");
+        // Set flag before reloading
+        sessionStorage.setItem('api_health_reloaded', 'true');
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      }
     }
   }, [healthStatus.bionauts.isHealthy, wasUnhealthy, hasReloaded]);
 
@@ -38,45 +43,16 @@ const APIHealthBanner = ({ healthStatus }) => {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -50 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -50 }}
-        className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-2xl"
+        exit={{ opacity: 0, y: -20 }}
+        className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xl rounded-lg"
       >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
-            <div>
-              <p className="font-bold text-lg">
-                API Starting Up
-              </p>
-              <p className="text-sm text-yellow-50">
-                The server is waking up, this may take a moment...
-              </p>
-            </div>
-          </div>
-          {healthStatus.bionauts.isHealthy && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="flex items-center gap-2 bg-green-500 px-5 py-2.5 rounded-lg shadow-lg"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span className="font-bold text-lg">Connected!</span>
-            </motion.div>
-          )}
+        <div className="px-6 py-2.5 flex items-center gap-3">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          <p className="font-semibold text-sm">
+            API starting up, please wait...
+          </p>
         </div>
       </motion.div>
     </AnimatePresence>

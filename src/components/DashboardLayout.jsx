@@ -130,7 +130,7 @@ const DashboardLayout = ({
       {/* API Health Status Banner */}
       <APIHealthBanner healthStatus={healthStatus} />
 
-      <div className="flex h-screen" style={{ paddingTop: !healthStatus?.bionauts?.isHealthy ? '80px' : '0' }}>
+      <div className="flex h-screen">
         {/* Sidebar */}
         <Sidebar
           activeTab={activeTab}
