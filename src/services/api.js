@@ -832,12 +832,10 @@ export const enhancedSearch = async (query, options = {}) => {
             authors = [item.author];
           } else if (item.researcher) {
             authors = [item.researcher];
-          } else {
-            authors = ["Research Team"];
           }
 
           // Extract real date from various possible fields
-          let year = new Date().getFullYear();
+          let year = null;
           if (item.year) {
             year = parseInt(item.year);
           } else if (item.date) {
@@ -857,15 +855,23 @@ export const enhancedSearch = async (query, options = {}) => {
             }
           }
 
+          // Extract abstract/summary from various fields
+          const abstract = 
+            item.abstract || 
+            item.summary || 
+            item.content || 
+            item.description || 
+            "";
+
           return {
             id: `external-${index}`,
             title: item.title || item.filename || `Document ${index + 1}`,
-            abstract: item.content || item.summary || item.abstract || "",
+            abstract: abstract,
             source: "HackerNauts API",
             sourceType: "Research Document",
             year: year,
-            similarityScore: item.relevance_score || 0.9, // Use actual relevance score if available
-            authors: authors,
+            similarityScore: item.relevance_score || 0.9,
+            authors: authors.length > 0 ? authors : null, // Set to null if no authors found
             link:
               item.link ||
               `https://summarizer-model.onrender.com/summary/?filename=${encodeURIComponent(

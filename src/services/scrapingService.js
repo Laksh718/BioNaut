@@ -396,84 +396,70 @@ export const enhanceResultsWithScraping = async (results) => {
           result.authors &&
           Array.isArray(result.authors) &&
           result.authors.length > 0 &&
-          result.authors[0] !== "Research Team";
+          result.authors[0] !== "Research Team" &&
+          result.authors[0] !== null &&
+          result.authors[0] !== "";
 
         const hasValidYear =
           result.year &&
           result.year !== "Unknown" &&
+          result.year !== null &&
           result.year.toString().length === 4;
 
-        // If we already have good data, skip enhancement
-        if (hasValidAuthors && hasValidYear) {
+        // Check if we have an abstract
+        const hasValidAbstract =
+          result.abstract &&
+          result.abstract.length > 20 && // At least 20 characters for a valid abstract
+          result.abstract !== "";
+
+        // If we have all good data, skip enhancement
+        if (hasValidAuthors && hasValidYear && hasValidAbstract) {
           return result;
         }
 
-        // First try to extract from filename
+        // First try to extract from filename (for authors and year)
         const filenameData = result.filename
           ? scrapingService.extractFromFilename(result.filename)
           : null;
 
-        // If we have a link, try to scrape it
-        let scrapedData = null;
-        if (
-          result.link &&
-          result.link !==
-            "https://summarizer-model.onrender.com/summary/?filename="
-        ) {
-          scrapedData = await scrapingService.extractPaperMetadata(result.link);
-        }
-
-        // If scraping failed, try to extract from content
+        // Try to extract from content (for authors and year)
         let contentData = null;
-        if (!scrapedData && result.content) {
+        if (result.content && (!hasValidAuthors || !hasValidYear)) {
           contentData = scrapingService.extractFromContent(result.content);
         }
 
-        // If all scraping methods failed AND we don't have valid data, generate realistic fallback data
-        let fallbackData = null;
-        if (
-          !hasValidAuthors &&
-          !scrapedData?.authors?.length &&
-          !filenameData?.authors?.length &&
-          !contentData?.authors?.length
-        ) {
-          fallbackData = scrapingService.generateRealisticFallback(
-            result.title,
-            result.filename
-          );
+        // If abstract is missing, try to get it from content
+        let enhancedAbstract = result.abstract;
+        if (!hasValidAbstract && result.content) {
+          // Use first 500 characters of content as abstract
+          enhancedAbstract = result.content.substring(0, 500);
+          if (result.content.length > 500) {
+            enhancedAbstract += "...";
+          }
         }
 
-        // Use existing data if valid, otherwise use scraped/extracted data
+        // We'll NOT use scraping (CORS blocks it) or fallback data
+        // Only use what we can extract from filename/content or keep original
         const finalAuthors = hasValidAuthors
           ? result.authors
-          : scrapedData?.authors?.length > 0
-          ? scrapedData.authors
           : filenameData?.authors?.length > 0
           ? filenameData.authors
           : contentData?.authors?.length > 0
           ? contentData.authors
-          : fallbackData?.authors?.length > 0
-          ? fallbackData.authors
-          : result.authors;
+          : result.authors || ["Research Team"]; // Only use "Research Team" as last resort
 
         const finalYear = hasValidYear
           ? result.year
-          : scrapedData?.year ||
-            filenameData?.year ||
+          : filenameData?.year ||
             contentData?.year ||
-            fallbackData?.year ||
-            result.year;
+            result.year ||
+            new Date().getFullYear();
 
         return {
           ...result,
           authors: finalAuthors,
           year: finalYear,
-          // Add scraped metadata if available
-          ...(scrapedData && {
-            journal: scrapedData.journal || result.journal,
-            doi: scrapedData.doi || result.doi,
-            scrapedTitle: scrapedData.title || result.title,
-          }),
+          abstract: enhancedAbstract,
         };
       } catch (error) {
         console.warn("❌ Failed to enhance result:", error);
