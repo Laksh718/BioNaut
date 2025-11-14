@@ -81,7 +81,7 @@ export const geminiService = {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-pro",
+        model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -179,7 +179,7 @@ export const geminiService = {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-pro",
+        model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -242,7 +242,7 @@ export const geminiService = {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-pro",
+        model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -482,7 +482,7 @@ export const geminiService = {
   async generateRecommendationSummary(recommendation) {
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-pro",
+        model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,

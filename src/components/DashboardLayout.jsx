@@ -15,6 +15,7 @@ import AppOverview from "./AppOverview";
 import DataSources from "./DataSources";
 import AIAnalytics from "./AIAnalytics";
 import SettingsPage from "./SettingsPage";
+import APIHealthBanner from "./APIHealthBanner";
 
 const DashboardLayout = ({
   activeTab,
@@ -126,6 +127,9 @@ const DashboardLayout = ({
 
   return (
     <div className="min-h-screen transition-colors duration-300">
+      {/* API Health Status Banner */}
+      <APIHealthBanner healthStatus={healthStatus} />
+
       <div className="flex h-screen">
         {/* Sidebar */}
         <Sidebar

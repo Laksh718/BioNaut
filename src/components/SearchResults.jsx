@@ -130,11 +130,14 @@ const SearchResults = ({
                   </h3>
 
                   {/* Abstract/Summary */}
-                  <p className="text-gray-600 mb-4 line-clamp-3">
-                    {result.abstract ||
-                      result.summary ||
-                      "No abstract available"}
-                  </p>
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {result.abstract ||
+                        result.summary ||
+                        result.content ||
+                        "No abstract available"}
+                    </p>
+                  </div>
 
                   {/* Essential Details */}
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
