@@ -438,22 +438,24 @@ export const scrapingService = {
       // Try to extract authors from content patterns - improved for academic papers
       // First, look specifically in the first 1000 chars (where authors are usually listed)
       const earlyContent = content.substring(0, 1000);
+      console.log("🔍 Searching for authors in early content (first 1000 chars)");
       
       const authorPatterns = [
-        // Pattern: "Bing Zhang 1,✉, Esther Cory 2, Robert Sah 3" (full names with affiliation numbers)
-        /\n([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*\s*[,✉]*\s*[,\s]+[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]+[A-Z][a-z]+\s+[A-Z][a-z]+[^\n]{0,200})\n/,
-        // Pattern: Authors before "Reviewed by" section (e.g., "John Doe et al.\nReviewed by:")
-        /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)\s*(?:\n|$).*?reviewed by/im,
-        // Pattern: Multiple authors at start of document "Willie B, Smith A, Jones C"
-        /^([A-Z][a-z]+\s+[A-Z]{1,2}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,2}){1,15})(?:\s*\n|\s*$)/m,
+        // Pattern: Multiple full names with optional numbers "Bing Zhang 1, Esther Cory 2"
+        /([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*\d*[,✉\s]*(?:,\s*[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\s*\d*[,✉\s]*){1,20})/,
+        // Pattern: Authors before "Reviewed by" section
+        /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)[\n\s]+.*?reviewed by/i,
         // Pattern: "Authors: John Doe, Jane Smith"
         /(?:authors?|contributors?)[:\s]+([A-Z][^\n]{10,250})/i,
       ];
 
       // Try patterns on early content first (more reliable)
-      for (const pattern of authorPatterns) {
+      for (let i = 0; i < authorPatterns.length; i++) {
+        const pattern = authorPatterns[i];
         const match = earlyContent.match(pattern);
+        
         if (match && match[1]) {
+          console.log(`📋 Pattern ${i + 1} matched:`, match[1].substring(0, 100));
           let authorText = match[1].trim();
           
           // Remove reviewer information and affiliations
@@ -461,7 +463,7 @@ export const scrapingService = {
             .replace(/\b(reviewed by|edited by|editor|reviewer)[:\s]+.*/gi, '') // Remove "Reviewed by:" sections
             .replace(/\b(national research council|university|institute|college|laboratory|dept\.?|department)[^,]*/gi, '') // Remove institutional affiliations
             .replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '') // Remove common non-author text
-            .replace(/,\s*[A-Z]{2,}(?:\s|,|$)/g, '') // Remove country codes (USA, UK, etc.)
+            .replace(/,\s*[A-Z]{2,}(?:\s|,|$)/g, '') // Remove country codes
             .replace(/\([^)]*\)/g, '') // Remove parenthetical content
             .replace(/[✉]/g, '') // Remove email symbols
             .replace(/\d+/g, '') // Remove affiliation numbers
@@ -469,23 +471,32 @@ export const scrapingService = {
             .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
           
+          console.log("🧹 After cleaning:", authorText.substring(0, 100));
+          
           if (authorText.length > 10 && authorText.length < 300) {
             // Split by common separators
             const authorList = authorText
-              .split(/[,;]|(?:\s+and\s+)/)
+              .split(/[,;]/)
               .map((author) => author.trim())
               .filter((author) => {
-                // Filter out invalid authors - be strict
-                return author.length > 3 && 
+                // Filter out invalid authors
+                const isValid = author.length > 3 && 
                        author.length < 50 && 
-                       /^[A-Z][a-z]+\s+[A-Z][a-z]+/.test(author) && // Must be "FirstName LastName" format
+                       /[A-Z][a-z]+\s+[A-Z]/.test(author) && // Has at least "Name N" pattern
                        !/^\d+$/.test(author) && // Not just numbers
                        !/^(the|for|from|with|this|that|plos|one|doi|http|italy|usa|uk|cnr)$/i.test(author) && // Not common words
                        !/(reviewed|editor|national|research|council|university|institute)/i.test(author); // Not institutional text
+                
+                if (!isValid && author.length > 0) {
+                  console.log("❌ Filtered out:", author);
+                }
+                return isValid;
               })
               .slice(0, 10); // Limit to 10 authors
 
-            if (authorList.length >= 2) { // Need at least 2 authors to be valid
+            console.log("📊 Author list after filtering:", authorList);
+
+            if (authorList.length >= 1) { // Accept even 1 author if found
               authors.push(...authorList);
               console.log("✅ Found authors:", authors);
               break;
