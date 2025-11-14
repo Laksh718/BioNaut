@@ -41,24 +41,28 @@ const APIHealthBanner = ({ healthStatus }) => {
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -50 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-white px-6 py-3 shadow-lg"
+        className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-yellow-500 to-yellow-600 text-white shadow-2xl"
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
             <div>
-              <p className="font-semibold">
-                API is starting up, please wait...
+              <p className="font-bold text-lg">
+                API Starting Up
               </p>
-              <p className="text-sm text-yellow-100">
-                The server is waking up. This may take a moment.
+              <p className="text-sm text-yellow-50">
+                The server is waking up, this may take a moment...
               </p>
             </div>
           </div>
           {healthStatus.bionauts.isHealthy && (
-            <div className="flex items-center gap-2 bg-green-600 px-4 py-2 rounded-lg">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="flex items-center gap-2 bg-green-500 px-5 py-2.5 rounded-lg shadow-lg"
+            >
               <svg
-                className="w-5 h-5"
+                className="w-6 h-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -66,12 +70,12 @@ const APIHealthBanner = ({ healthStatus }) => {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span className="font-semibold">Connected! Refreshing...</span>
-            </div>
+              <span className="font-bold text-lg">Connected!</span>
+            </motion.div>
           )}
         </div>
       </motion.div>

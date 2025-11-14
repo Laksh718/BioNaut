@@ -129,15 +129,14 @@ const SearchResults = ({
                     {result.title}
                   </h3>
 
-                  {/* Abstract/Summary */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {result.abstract ||
-                        result.summary ||
-                        result.content ||
-                        "No abstract available"}
-                    </p>
-                  </div>
+                  {/* Abstract/Summary - Only show if content exists */}
+                  {(result.abstract || result.summary || result.content) && (
+                    <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {result.abstract || result.summary || result.content}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Essential Details */}
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
