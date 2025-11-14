@@ -354,39 +354,60 @@ export const scrapingService = {
       // Try to extract abstract from content - improved for academic papers
       const abstractPatterns = [
         // Pattern: "Abstract" followed by content until next section
-        /abstract[:\s\n]+([^]*?)(?:\n\s*(?:introduction|background|keywords|methods|results|1\.|key words|abbreviations|funding|©|copyright)\b)/i,
+        /abstract[:\s\n]+([^]*?)(?:\n\s*(?:introduction|background|keywords|key words|methods|results|1\.|abbreviations|funding|©|copyright|author|citation)\b)/i,
         // Pattern: Summary section
         /summary[:\s\n]+([^]*?)(?:\n\s*(?:introduction|background|keywords|methods|results|1\.))/i,
-        // Pattern: Text between title and "Introduction"
-        /\n\n([^]*?)(?:\n\s*introduction\b)/i,
+        // Pattern: First substantial paragraph after title (usually abstract)
+        /^[^\n]+\n+([^]*?)(?:\n\s*(?:introduction|background|1\.))/i,
+        // Pattern: Content before "Introduction" section
+        /([^]*?)(?:\n\s*introduction\b)/i,
       ];
       
       for (const pattern of abstractPatterns) {
         const match = content.match(pattern);
         if (match && match[1]) {
           let extractedAbstract = match[1].trim();
-          // Remove common header/footer elements
+          
+          // Remove common header/footer elements and metadata
           extractedAbstract = extractedAbstract
-            .replace(/PLOS ONE.*?\d+\s*\/\s*\d+/g, '') // Remove PLOS headers
+            .replace(/^.*?PLOS ONE.*?\n/gm, '') // Remove PLOS headers
+            .replace(/^.*?doi:.*?\n/gmi, '') // Remove DOI lines
+            .replace(/^.*?PMC\d+.*?\n/gm, '') // Remove PMC IDs
+            .replace(/^.*?copyright.*?\n/gmi, '') // Remove copyright
+            .replace(/^.*?©.*?\n/gm, '') // Remove copyright symbol lines
             .replace(/https?:\/\/[^\s]+/g, '') // Remove URLs
-            .replace(/\bPMC\d+\b/g, '') // Remove PMC IDs
-            .replace(/\bDOI:.*?\n/g, '') // Remove DOI lines
+            .replace(/^\s*\d+\s*$/gm, '') // Remove page numbers
+            .replace(/^\s*\[.*?\]\s*$/gm, '') // Remove citation markers alone on lines
             .trim();
           
+          // Must be substantial but not too long to be the abstract
           if (extractedAbstract.length > 100 && extractedAbstract.length < 3000) {
             abstract = extractedAbstract;
+            console.log("✅ Found abstract using pattern, length:", abstract.length);
             break;
           }
         }
       }
       
-      // If no abstract found, use first meaningful paragraph (skip headers/footers)
-      if (!abstract && content.length > 100) {
-        // Skip first 200 chars (likely title/header), then take next 500 chars
-        const startPos = Math.min(200, content.length / 4);
-        abstract = content.substring(startPos, startPos + 500).trim();
-        if (content.length > startPos + 500) {
-          abstract += "...";
+      // If no abstract found with patterns, look for first substantial block of text
+      if (!abstract && content.length > 200) {
+        // Take first 3 paragraphs or 600 chars, whichever is shorter
+        const paragraphs = content.split(/\n\n+/);
+        let textBlock = "";
+        for (let i = 0; i < Math.min(3, paragraphs.length); i++) {
+          const para = paragraphs[i].trim();
+          if (para.length > 50) { // Skip short headers
+            textBlock += para + " ";
+            if (textBlock.length >= 400) break;
+          }
+        }
+        
+        if (textBlock.length > 100) {
+          abstract = textBlock.substring(0, 600).trim();
+          if (content.length > 600) {
+            abstract += "...";
+          }
+          console.log("⚠️ Using first text block as abstract, length:", abstract.length);
         }
       }
 
@@ -579,24 +600,15 @@ export const enhanceResultsWithScraping = async (results) => {
           ? scrapingService.extractFromFilename(result.filename)
           : null;
 
-        // If result has a link to PubMed/PMC, try scraping it for structured data
-        let scrapedData = null;
-        if (result.link && (result.link.includes('pubmed') || result.link.includes('pmc'))) {
-          console.log(`🔗 Attempting to scrape link: ${result.link}`);
-          scrapedData = await scrapingService.extractPaperMetadata(result.link);
-          console.log("📊 Scraped data:", {
-            authors: scrapedData?.authors?.length || 0,
-            year: scrapedData?.year,
-            abstractLength: scrapedData?.abstract?.length || 0,
-            source: scrapedData?.source
-          });
-        }
+        // NOTE: PubMed API scraping is blocked by CORS in browser, so we skip it
+        // and rely on content extraction instead
 
-        // Try to extract from content (for authors, year, and abstract)
+        // Try to extract from content or fullSummary (for authors, year, and abstract)
         let contentData = null;
-        if (result.content && (!hasValidAuthors || !hasValidYear || !hasValidAbstract)) {
+        const contentToAnalyze = result.fullSummary || result.content;
+        if (contentToAnalyze && (!hasValidAuthors || !hasValidYear || !hasValidAbstract)) {
           console.log(`🔄 Extracting metadata for result: ${result.title?.substring(0, 50)}`);
-          contentData = scrapingService.extractFromContent(result.content);
+          contentData = scrapingService.extractFromContent(contentToAnalyze);
           console.log("📊 Content data extracted:", {
             authors: contentData?.authors?.length || 0,
             year: contentData?.year,
@@ -604,34 +616,25 @@ export const enhanceResultsWithScraping = async (results) => {
           });
         }
 
-        // If abstract is missing, try to get it from scraped data, content extraction, or use first part of content
+        // If abstract is missing, try to get it from content extraction, or use truncated summary
         let enhancedAbstract = result.abstract;
         if (!hasValidAbstract) {
-          if (scrapedData?.abstract) {
-            enhancedAbstract = scrapedData.abstract;
-            console.log("✅ Using scraped abstract from PubMed, length:", enhancedAbstract.length);
-          } else if (contentData?.abstract) {
+          if (contentData?.abstract) {
             enhancedAbstract = contentData.abstract;
             console.log("✅ Using extracted abstract from content, length:", enhancedAbstract.length);
-          } else if (result.fullSummary && result.fullSummary.length > 50) {
-            enhancedAbstract = result.fullSummary;
-            console.log("⚠️ Using fullSummary as abstract, length:", enhancedAbstract.length);
-          } else if (result.content && result.content.length > 50) {
-            // Use first 500 characters of content as abstract
-            enhancedAbstract = result.content.substring(0, 500);
-            if (result.content.length > 500) {
+          } else if (contentToAnalyze && contentToAnalyze.length > 50) {
+            // Use first 500 characters as fallback
+            enhancedAbstract = contentToAnalyze.substring(0, 500);
+            if (contentToAnalyze.length > 500) {
               enhancedAbstract += "...";
             }
             console.log("⚠️ Using truncated content as abstract");
           }
         }
 
-        // We'll NOT use fallback data
-        // Priority: scraped data (from PubMed API) > filename > content extraction > original
+        // Priority: filename > content extraction > original
         const finalAuthors = hasValidAuthors
           ? result.authors
-          : scrapedData?.authors?.length > 0
-          ? scrapedData.authors
           : filenameData?.authors?.length > 0
           ? filenameData.authors
           : contentData?.authors?.length > 0
@@ -640,8 +643,7 @@ export const enhanceResultsWithScraping = async (results) => {
 
         const finalYear = hasValidYear
           ? result.year
-          : scrapedData?.year ||
-            filenameData?.year ||
+          : filenameData?.year ||
             contentData?.year ||
             result.year ||
             new Date().getFullYear();
