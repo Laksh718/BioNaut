@@ -436,25 +436,23 @@ export const scrapingService = {
       }
 
       // Try to extract authors from content patterns - improved for academic papers
+      // First, look specifically in the first 1000 chars (where authors are usually listed)
+      const earlyContent = content.substring(0, 1000);
+      
       const authorPatterns = [
-        // Pattern: "Bing Zhang 1,✉, Esther Cory 2" format (authors after title with superscript numbers)
-        /(?:^|\n)([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]+(?:[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]*){1,20}?)(?=\n|$)/m,
+        // Pattern: "Bing Zhang 1,✉, Esther Cory 2, Robert Sah 3" (full names with affiliation numbers)
+        /\n([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*\s*[,✉]*\s*[,\s]+[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]+[A-Z][a-z]+\s+[A-Z][a-z]+[^\n]{0,200})\n/,
         // Pattern: Authors before "Reviewed by" section (e.g., "John Doe et al.\nReviewed by:")
         /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)\s*(?:\n|$).*?reviewed by/im,
         // Pattern: Multiple authors at start of document "Willie B, Smith A, Jones C"
         /^([A-Z][a-z]+\s+[A-Z]{1,2}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,2}){1,15})(?:\s*\n|\s*$)/m,
         // Pattern: "Authors: John Doe, Jane Smith"
         /(?:authors?|contributors?)[:\s]+([A-Z][^\n]{10,250})/i,
-        // Pattern: Academic citation format "Doe J, Smith A, Brown C"
-        /^([A-Z][a-z]+\s+[A-Z]{1,3}(?:[,;\s]+[A-Z][a-z]+\s+[A-Z]{1,3}){1,15})/m,
-        // Pattern: "By John Doe, Jane Smith"  
-        /\bby[:\s]+([A-Z][^\n]{10,200})/i,
-        // Pattern: "Davis BA, Sipe B, Gershan LA" format (Last First-Initial)
-        /\b([A-Z][a-z]+\s+[A-Z]{1,3}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,3}){2,15})\b/,
       ];
 
+      // Try patterns on early content first (more reliable)
       for (const pattern of authorPatterns) {
-        const match = content.match(pattern);
+        const match = earlyContent.match(pattern);
         if (match && match[1]) {
           let authorText = match[1].trim();
           
@@ -471,23 +469,23 @@ export const scrapingService = {
             .replace(/\s+/g, ' ') // Normalize whitespace
             .trim();
           
-          if (authorText.length > 5 && authorText.length < 300) {
+          if (authorText.length > 10 && authorText.length < 300) {
             // Split by common separators
             const authorList = authorText
               .split(/[,;]|(?:\s+and\s+)/)
               .map((author) => author.trim())
               .filter((author) => {
-                // Filter out invalid authors and reviewers
+                // Filter out invalid authors - be strict
                 return author.length > 3 && 
                        author.length < 50 && 
-                       /[A-Z]/.test(author) && // Must have capital letter
+                       /^[A-Z][a-z]+\s+[A-Z][a-z]+/.test(author) && // Must be "FirstName LastName" format
                        !/^\d+$/.test(author) && // Not just numbers
-                       !/^(the|for|from|with|this|that|plos|one|doi|http|italy|usa|uk|cnr)$/i.test(author) && // Not common words or countries
-                       !/(reviewed|editor|national|research|council)/i.test(author); // Not reviewer/affiliation text
+                       !/^(the|for|from|with|this|that|plos|one|doi|http|italy|usa|uk|cnr)$/i.test(author) && // Not common words
+                       !/(reviewed|editor|national|research|council|university|institute)/i.test(author); // Not institutional text
               })
               .slice(0, 10); // Limit to 10 authors
 
-            if (authorList.length > 0) {
+            if (authorList.length >= 2) { // Need at least 2 authors to be valid
               authors.push(...authorList);
               console.log("✅ Found authors:", authors);
               break;
