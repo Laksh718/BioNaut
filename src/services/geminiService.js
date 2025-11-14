@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Initialize Gemini AI with API key from environment variables
 const genAI = new GoogleGenerativeAI(
   import.meta.env.VITE_GEMINI_API_KEY ||
-    "AIzaSyC0KOZu_IQ7lQHnfG-zjiOlTDx1L6P_ICo"
+    "AIzaSyChjrgqG3NTGbZyk8p03Z8NZ6SX9rYnBnQ"
 );
 
 export const geminiService = {
@@ -73,7 +73,7 @@ export const geminiService = {
     // Always try to use Gemini API first
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -171,7 +171,7 @@ export const geminiService = {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -234,7 +234,7 @@ export const geminiService = {
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
@@ -474,7 +474,7 @@ export const geminiService = {
   async generateRecommendationSummary(recommendation) {
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.5-flash",
         generationConfig: {
           temperature: 0.7,
           topK: 40,
