@@ -391,6 +391,23 @@ export const enhanceResultsWithScraping = async (results) => {
   const enhancedResults = await Promise.all(
     results.map(async (result, index) => {
       try {
+        // Check if result already has good author and year data from API
+        const hasValidAuthors =
+          result.authors &&
+          Array.isArray(result.authors) &&
+          result.authors.length > 0 &&
+          result.authors[0] !== "Research Team";
+
+        const hasValidYear =
+          result.year &&
+          result.year !== "Unknown" &&
+          result.year.toString().length === 4;
+
+        // If we already have good data, skip enhancement
+        if (hasValidAuthors && hasValidYear) {
+          return result;
+        }
+
         // First try to extract from filename
         const filenameData = result.filename
           ? scrapingService.extractFromFilename(result.filename)
@@ -412,9 +429,10 @@ export const enhanceResultsWithScraping = async (results) => {
           contentData = scrapingService.extractFromContent(result.content);
         }
 
-        // If all scraping methods failed, generate realistic fallback data
+        // If all scraping methods failed AND we don't have valid data, generate realistic fallback data
         let fallbackData = null;
         if (
+          !hasValidAuthors &&
           !scrapedData?.authors?.length &&
           !filenameData?.authors?.length &&
           !contentData?.authors?.length
@@ -425,24 +443,26 @@ export const enhanceResultsWithScraping = async (results) => {
           );
         }
 
-        // Use scraped data if available, otherwise use filename data, otherwise use content data, otherwise use fallback, otherwise keep original
-        const finalAuthors =
-          scrapedData?.authors?.length > 0
-            ? scrapedData.authors
-            : filenameData?.authors?.length > 0
-            ? filenameData.authors
-            : contentData?.authors?.length > 0
-            ? contentData.authors
-            : fallbackData?.authors?.length > 0
-            ? fallbackData.authors
-            : result.authors;
+        // Use existing data if valid, otherwise use scraped/extracted data
+        const finalAuthors = hasValidAuthors
+          ? result.authors
+          : scrapedData?.authors?.length > 0
+          ? scrapedData.authors
+          : filenameData?.authors?.length > 0
+          ? filenameData.authors
+          : contentData?.authors?.length > 0
+          ? contentData.authors
+          : fallbackData?.authors?.length > 0
+          ? fallbackData.authors
+          : result.authors;
 
-        const finalYear =
-          scrapedData?.year ||
-          filenameData?.year ||
-          contentData?.year ||
-          fallbackData?.year ||
-          result.year;
+        const finalYear = hasValidYear
+          ? result.year
+          : scrapedData?.year ||
+            filenameData?.year ||
+            contentData?.year ||
+            fallbackData?.year ||
+            result.year;
 
         return {
           ...result,
