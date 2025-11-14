@@ -253,9 +253,34 @@ export const scrapingService = {
       if (!content || typeof content !== "string") return null;
 
       const authors = [];
+      let abstract = null;
+      
+      // Try to extract abstract from content
+      const abstractPatterns = [
+        /abstract[:\s]+([^]*?)(?:\n\n|introduction|keywords|background)/i,
+        /summary[:\s]+([^]*?)(?:\n\n|introduction|keywords|background)/i,
+        /^([^]*?)(?:\n\n|introduction|keywords|background)/i, // First paragraph
+      ];
+      
+      for (const pattern of abstractPatterns) {
+        const match = content.match(pattern);
+        if (match && match[1] && match[1].length > 50 && match[1].length < 2000) {
+          abstract = match[1].trim();
+          break;
+        }
+      }
+      
+      // If no abstract found, use first 500 chars
+      if (!abstract && content.length > 50) {
+        abstract = content.substring(0, 500);
+        if (content.length > 500) {
+          abstract += "...";
+        }
+      }
+
       const yearPatterns = [
-        /(\d{4})/g, // Any 4-digit number
-        /(19\d{2}|20\d{2})/g, // Years 1900-2099
+        /\b(20[0-2]\d)\b/g, // Years 2000-2029 (most likely for research papers)
+        /\b(19[89]\d)\b/g, // Years 1980-1999
       ];
 
       // Try to extract year from content
@@ -263,43 +288,52 @@ export const scrapingService = {
       for (const pattern of yearPatterns) {
         const matches = content.match(pattern);
         if (matches) {
-          // Find the most likely publication year (usually recent, but not current year)
+          // Find the most recent year that's not the current year
           const years = matches
             .map((m) => parseInt(m))
-            .filter((y) => y >= 1900 && y <= new Date().getFullYear());
+            .filter((y) => y >= 1980 && y <= new Date().getFullYear());
           if (years.length > 0) {
-            // Sort by recency and take the most recent that's not current year
-            const sortedYears = years.sort((a, b) => b - a);
-            year =
-              sortedYears.find((y) => y < new Date().getFullYear()) ||
-              sortedYears[0];
+            // Sort by recency
+            const sortedYears = [...new Set(years)].sort((a, b) => b - a);
+            // Prefer years that are not the current year (likely publication year)
+            year = sortedYears.find((y) => y < new Date().getFullYear()) || sortedYears[0];
             break;
           }
         }
       }
 
-      // Try to extract authors from content patterns
+      // Try to extract authors from content patterns - improved patterns
       const authorPatterns = [
         // Pattern: "Authors: John Doe, Jane Smith"
-        /authors?:\s*([^.\n]+)/i,
-        // Pattern: "By John Doe, Jane Smith"
-        /by\s+([^.\n]+)/i,
-        // Pattern: "John Doe, Jane Smith, et al."
-        /^([A-Z][a-z]+ [A-Z][a-z]+(?:,\s*[A-Z][a-z]+ [A-Z][a-z]+)*)/,
-        // Pattern: "Doe, J., Smith, J."
-        /([A-Z][a-z]+,\s*[A-Z]\.(?:,\s*[A-Z][a-z]+,\s*[A-Z]\.)*)/,
+        /authors?[:\s]+([^\n]{10,200})/i,
+        // Pattern: "By John Doe, Jane Smith"  
+        /\bby[:\s]+([^\n]{10,150})/i,
+        // Pattern: Names at start with potential affiliations
+        /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:[,;]\s+[A-Z][a-z]+\s+[A-Z][a-z]+){0,10})/m,
+        // Pattern: "Doe, J.A., Smith, B.C."
+        /([A-Z][a-z]+,\s*[A-Z]\.\s*[A-Z]?\.?(?:[,;]\s*[A-Z][a-z]+,\s*[A-Z]\.\s*[A-Z]?\.?){0,10})/,
       ];
 
       for (const pattern of authorPatterns) {
         const match = content.match(pattern);
-        if (match) {
-          const authorText = match[1];
-          if (authorText && authorText.length > 3 && authorText.length < 200) {
+        if (match && match[1]) {
+          let authorText = match[1].trim();
+          // Remove common non-author words
+          authorText = authorText.replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '');
+          
+          if (authorText.length > 3 && authorText.length < 300) {
             // Split by common separators
             const authorList = authorText
-              .split(/[,;]/)
+              .split(/[,;]|(?:\s+and\s+)/)
               .map((author) => author.trim())
-              .filter((author) => author.length > 2 && author.length < 50)
+              .filter((author) => {
+                // Filter out invalid authors
+                return author.length > 2 && 
+                       author.length < 50 && 
+                       /[A-Z]/.test(author) && // Must have capital letter
+                       !/^\d+$/.test(author) && // Not just numbers
+                       !/^(the|for|from|with|this|that)$/i.test(author); // Not common words
+              })
               .slice(0, 10); // Limit to 10 authors
 
             if (authorList.length > 0) {
@@ -313,6 +347,7 @@ export const scrapingService = {
       return {
         authors: authors.length > 0 ? authors : null,
         year: year,
+        abstract: abstract,
         source: "content_analysis",
       };
     } catch (error) {
@@ -422,19 +457,25 @@ export const enhanceResultsWithScraping = async (results) => {
           ? scrapingService.extractFromFilename(result.filename)
           : null;
 
-        // Try to extract from content (for authors and year)
+        // Try to extract from content (for authors, year, and abstract)
         let contentData = null;
-        if (result.content && (!hasValidAuthors || !hasValidYear)) {
+        if (result.content && (!hasValidAuthors || !hasValidYear || !hasValidAbstract)) {
           contentData = scrapingService.extractFromContent(result.content);
         }
 
-        // If abstract is missing, try to get it from content
+        // If abstract is missing, try to get it from content extraction or use first part of content
         let enhancedAbstract = result.abstract;
-        if (!hasValidAbstract && result.content) {
-          // Use first 500 characters of content as abstract
-          enhancedAbstract = result.content.substring(0, 500);
-          if (result.content.length > 500) {
-            enhancedAbstract += "...";
+        if (!hasValidAbstract) {
+          if (contentData?.abstract) {
+            enhancedAbstract = contentData.abstract;
+          } else if (result.fullSummary && result.fullSummary.length > 50) {
+            enhancedAbstract = result.fullSummary;
+          } else if (result.content && result.content.length > 50) {
+            // Use first 500 characters of content as abstract
+            enhancedAbstract = result.content.substring(0, 500);
+            if (result.content.length > 500) {
+              enhancedAbstract += "...";
+            }
           }
         }
 
