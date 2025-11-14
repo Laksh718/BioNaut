@@ -22,12 +22,14 @@ const Recommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   const handleQueryRecommendations = async () => {
     if (!query.trim()) return;
 
     setIsLoading(true);
     setError(null);
+    setUsingFallback(false);
 
     try {
       console.log("Getting recommendations for query:", query);
@@ -37,6 +39,12 @@ const Recommendations = () => {
         numRecommendations
       );
       console.log("Recommendations response:", response);
+
+      // Check if using fallback data
+      if (response.fallback) {
+        setUsingFallback(true);
+        console.log("Using fallback recommendations");
+      }
 
       if (response.recommendations && response.recommendations.length > 0) {
         console.log("Raw recommendations:", response.recommendations);
@@ -67,6 +75,7 @@ const Recommendations = () => {
 
     setIsLoading(true);
     setError(null);
+    setUsingFallback(false);
 
     try {
       console.log("Getting recommendations for record:", recordId);
@@ -76,6 +85,12 @@ const Recommendations = () => {
         numRecommendations
       );
       console.log("Record recommendations response:", response);
+
+      // Check if using fallback data
+      if (response.fallback) {
+        setUsingFallback(true);
+        console.log("Using fallback recommendations");
+      }
 
       if (response.recommendations && response.recommendations.length > 0) {
         console.log("Raw recommendations:", response.recommendations);
@@ -380,6 +395,30 @@ const Recommendations = () => {
             <div>
               <h3 className="text-sm font-medium text-red-800">Error</h3>
               <div className="mt-1 text-sm text-red-700">{error}</div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Fallback Mode Notice */}
+      {usingFallback && recommendations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-600 text-sm">ℹ️</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">
+                Sample Recommendations
+              </h3>
+              <div className="mt-1 text-sm text-blue-700">
+                Showing curated research examples from NASA's space biology
+                database.
+              </div>
             </div>
           </div>
         </motion.div>

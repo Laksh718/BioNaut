@@ -160,3 +160,4 @@ class HealthCheckService {
 const healthCheckService = new HealthCheckService();
 
 export default healthCheckService;
+
