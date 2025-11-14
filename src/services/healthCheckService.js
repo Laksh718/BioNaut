@@ -4,7 +4,7 @@ import axios from "axios";
 class HealthCheckService {
   constructor() {
     this.endpoints = {
-      bionauts: "https://bionauts.onrender.com/health",
+      bionauts: "https://summarizer-model.onrender.com/health",
       summarizer: "https://summarizer-model.onrender.com/health",
     };
     this.healthStatus = {
