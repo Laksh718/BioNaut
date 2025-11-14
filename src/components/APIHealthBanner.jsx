@@ -1,42 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const APIHealthBanner = ({ healthStatus }) => {
   const [showBanner, setShowBanner] = useState(false);
-  const [wasUnhealthy, setWasUnhealthy] = useState(false);
   const [hasReloaded, setHasReloaded] = useState(false);
+  // track previous health so we only reload when we transition from unhealthy -> healthy
+  const prevIsHealthy = useRef(undefined);
 
   useEffect(() => {
-    // Check if we just reloaded due to health recovery
-    const reloadFlag = sessionStorage.getItem('api_health_reloaded');
-    if (reloadFlag === 'true') {
-      // Clear the flag and don't show banner or reload again
-      sessionStorage.removeItem('api_health_reloaded');
+    // If we previously set the reload flag, clear it and avoid reloading again
+    const reloadFlag = sessionStorage.getItem("api_health_reloaded");
+    if (reloadFlag === "true") {
+      sessionStorage.removeItem("api_health_reloaded");
       setHasReloaded(true);
+      // initialize prev state to healthy to avoid immediate reloads
+      prevIsHealthy.current = true;
       return;
     }
 
-    const bionautsUnhealthy = !healthStatus.bionauts.isHealthy;
+    const currentHealthy = Boolean(healthStatus?.bionauts?.isHealthy);
+    const previous = prevIsHealthy.current;
 
-    // Show banner ONLY if bionauts API is unhealthy
-    if (bionautsUnhealthy) {
+    // show banner only when currently unhealthy
+    if (!currentHealthy) {
       setShowBanner(true);
-      setWasUnhealthy(true);
     } else {
-      // Hide banner when healthy
       setShowBanner(false);
-      
-      // If it was unhealthy and now healthy, reload the page ONCE
-      if (wasUnhealthy && !hasReloaded) {
-        console.log("[API Status] API is now healthy, reloading page...");
-        // Set flag before reloading
-        sessionStorage.setItem('api_health_reloaded', 'true');
-        setTimeout(() => {
-          window.location.reload();
-        }, 800);
-      }
     }
-  }, [healthStatus.bionauts.isHealthy, wasUnhealthy, hasReloaded]);
+
+    // Only reload when we detect a transition from explicit unhealthy (previous === false)
+    // to healthy (currentHealthy === true). This avoids reloading on initial mount
+    // if the API is already healthy.
+    if (previous === false && currentHealthy && !hasReloaded) {
+      // mark reload and perform single reload
+      sessionStorage.setItem("api_health_reloaded", "true");
+      setHasReloaded(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    }
+
+    // update previous state for next run
+    prevIsHealthy.current = currentHealthy;
+  }, [healthStatus?.bionauts?.isHealthy, hasReloaded]);
 
   if (!showBanner) return null;
 
