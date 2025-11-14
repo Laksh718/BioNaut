@@ -437,10 +437,10 @@ export const scrapingService = {
 
       // Try to extract authors from content patterns - improved for academic papers
       const authorPatterns = [
+        // Pattern: "Bing Zhang 1,✉, Esther Cory 2" format (authors after title with superscript numbers)
+        /(?:^|\n)([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]+(?:[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,✉\s]*){1,20}?)(?=\n|$)/m,
         // Pattern: Authors before "Reviewed by" section (e.g., "John Doe et al.\nReviewed by:")
         /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+et al\.?)?)\s*(?:\n|$).*?reviewed by/im,
-        // Pattern: Names followed by affiliations with numbers (e.g., "John Doe1, Jane Smith2")
-        /^([A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]+(?:[A-Z][a-z]+\s+[A-Z][a-z]+\s*\d*[,;\s]*){1,20})/m,
         // Pattern: Multiple authors at start of document "Willie B, Smith A, Jones C"
         /^([A-Z][a-z]+\s+[A-Z]{1,2}(?:[,\s]+[A-Z][a-z]+\s+[A-Z]{1,2}){1,15})(?:\s*\n|\s*$)/m,
         // Pattern: "Authors: John Doe, Jane Smith"
@@ -465,6 +465,7 @@ export const scrapingService = {
             .replace(/\b(and|et al\.?|corresponding author|affiliations?)\b/gi, '') // Remove common non-author text
             .replace(/,\s*[A-Z]{2,}(?:\s|,|$)/g, '') // Remove country codes (USA, UK, etc.)
             .replace(/\([^)]*\)/g, '') // Remove parenthetical content
+            .replace(/[✉]/g, '') // Remove email symbols
             .replace(/\d+/g, '') // Remove affiliation numbers
             .replace(/[*†‡§¶]/g, '') // Remove special markers
             .replace(/\s+/g, ' ') // Normalize whitespace
