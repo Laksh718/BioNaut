@@ -3,46 +3,42 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const APIHealthBanner = ({ healthStatus }) => {
   const [showBanner, setShowBanner] = useState(false);
-  const [hasReloaded, setHasReloaded] = useState(false);
-  // track previous health so we only reload when we transition from unhealthy -> healthy
-  const prevIsHealthy = useRef(undefined);
+  const hasReloadedRef = useRef(false);
+  const prevHealthyRef = useRef(null);
 
   useEffect(() => {
-    // If we previously set the reload flag, clear it and avoid reloading again
-    const reloadFlag = sessionStorage.getItem("api_health_reloaded");
-    if (reloadFlag === "true") {
+    // Check if we already reloaded in this session
+    if (sessionStorage.getItem("api_health_reloaded") === "true") {
+      hasReloadedRef.current = true;
       sessionStorage.removeItem("api_health_reloaded");
-      setHasReloaded(true);
-      // initialize prev state to healthy to avoid immediate reloads
-      prevIsHealthy.current = true;
       return;
     }
 
-    const currentHealthy = Boolean(healthStatus?.bionauts?.isHealthy);
-    const previous = prevIsHealthy.current;
+    const isHealthy = healthStatus?.bionauts?.isHealthy;
 
-    // show banner only when currently unhealthy
-    if (!currentHealthy) {
-      setShowBanner(true);
-    } else {
-      setShowBanner(false);
-    }
+    // Show banner only when unhealthy
+    setShowBanner(!isHealthy);
 
-    // Only reload when we detect a transition from explicit unhealthy (previous === false)
-    // to healthy (currentHealthy === true). This avoids reloading on initial mount
-    // if the API is already healthy.
-    if (previous === false && currentHealthy && !hasReloaded) {
-      // mark reload and perform single reload
+    // Only reload if:
+    // 1. We haven't reloaded yet in this session
+    // 2. Previous state was explicitly false (unhealthy)
+    // 3. Current state is true (healthy)
+    if (
+      !hasReloadedRef.current &&
+      prevHealthyRef.current === false &&
+      isHealthy === true
+    ) {
+      console.log("[API Status] API recovered, reloading once...");
+      hasReloadedRef.current = true;
       sessionStorage.setItem("api_health_reloaded", "true");
-      setHasReloaded(true);
       setTimeout(() => {
         window.location.reload();
       }, 800);
     }
 
-    // update previous state for next run
-    prevIsHealthy.current = currentHealthy;
-  }, [healthStatus?.bionauts?.isHealthy, hasReloaded]);
+    // Update previous state
+    prevHealthyRef.current = isHealthy;
+  }, [healthStatus?.bionauts?.isHealthy]);
 
   if (!showBanner) return null;
 
