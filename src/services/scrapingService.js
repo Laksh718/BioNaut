@@ -3,8 +3,6 @@ export const scrapingService = {
   // Extract metadata from various research paper sources
   async extractPaperMetadata(url) {
     try {
-      console.log("Attempting to scrape metadata from:", url);
-
       // Try different scraping strategies based on URL domain
       if (
         url.includes("pubmed.ncbi.nlm.nih.gov") ||
@@ -376,12 +374,6 @@ export const scrapingService = {
       // Select a random year
       const selectedYear = years[Math.floor(Math.random() * years.length)];
 
-      console.log(`🎲 Generated fallback data:`, {
-        authors: selectedAuthors,
-        year: selectedYear,
-        source: "realistic_fallback",
-      });
-
       return {
         authors: selectedAuthors,
         year: selectedYear,
@@ -396,28 +388,13 @@ export const scrapingService = {
 
 // Helper function to enhance search results with scraped metadata
 export const enhanceResultsWithScraping = async (results) => {
-  console.log(
-    "🔍 Starting to enhance results with scraping:",
-    results.length,
-    "results"
-  );
-
   const enhancedResults = await Promise.all(
     results.map(async (result, index) => {
-      console.log(`📄 Processing result ${index + 1}:`, {
-        title: result.title?.substring(0, 50) + "...",
-        filename: result.filename,
-        link: result.link,
-        hasContent: !!result.content,
-      });
-
       try {
         // First try to extract from filename
         const filenameData = result.filename
           ? scrapingService.extractFromFilename(result.filename)
           : null;
-
-        console.log(`📁 Filename extraction result:`, filenameData);
 
         // If we have a link, try to scrape it
         let scrapedData = null;
@@ -426,17 +403,13 @@ export const enhanceResultsWithScraping = async (results) => {
           result.link !==
             "https://summarizer-model.onrender.com/summary/?filename="
         ) {
-          console.log(`🌐 Attempting to scrape URL:`, result.link);
           scrapedData = await scrapingService.extractPaperMetadata(result.link);
-          console.log(`🌐 Scraping result:`, scrapedData);
         }
 
         // If scraping failed, try to extract from content
         let contentData = null;
         if (!scrapedData && result.content) {
-          console.log(`📝 Attempting content extraction...`);
           contentData = scrapingService.extractFromContent(result.content);
-          console.log(`📝 Content extraction result:`, contentData);
         }
 
         // If all scraping methods failed, generate realistic fallback data
@@ -446,9 +419,6 @@ export const enhanceResultsWithScraping = async (results) => {
           !filenameData?.authors?.length &&
           !contentData?.authors?.length
         ) {
-          console.log(
-            `🎲 All scraping failed, generating realistic fallback...`
-          );
           fallbackData = scrapingService.generateRealisticFallback(
             result.title,
             result.filename
@@ -474,20 +444,6 @@ export const enhanceResultsWithScraping = async (results) => {
           fallbackData?.year ||
           result.year;
 
-        console.log(`✅ Final result for ${index + 1}:`, {
-          authors: finalAuthors,
-          year: finalYear,
-          source: scrapedData
-            ? "scraped"
-            : filenameData
-            ? "filename"
-            : contentData
-            ? "content"
-            : fallbackData
-            ? "fallback"
-            : "original",
-        });
-
         return {
           ...result,
           authors: finalAuthors,
@@ -506,34 +462,23 @@ export const enhanceResultsWithScraping = async (results) => {
     })
   );
 
-  console.log(
-    "🎉 Enhancement complete. Enhanced results:",
-    enhancedResults.length
-  );
   return enhancedResults;
 };
 
 // Test function to verify the system works
 export const testScrapingSystem = () => {
-  console.log("🧪 Testing scraping system...");
-
   // Test filename extraction
   const testFilename = "Smith_Johnson_2021_Microgravity_Effects.pdf";
   const filenameResult = scrapingService.extractFromFilename(testFilename);
-  console.log("📁 Filename test result:", filenameResult);
 
   // Test content extraction
   const testContent =
     "Authors: Dr. Sarah Johnson, Dr. Michael Chen. Published in 2020. This study examines...";
   const contentResult = scrapingService.extractFromContent(testContent);
-  console.log("📝 Content test result:", contentResult);
 
   // Test fallback generation
   const fallbackResult = scrapingService.generateRealisticFallback(
     "Test Title",
     "test.pdf"
   );
-  console.log("🎲 Fallback test result:", fallbackResult);
-
-  console.log("✅ Scraping system test complete!");
 };
