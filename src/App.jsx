@@ -74,6 +74,9 @@ const App = () => {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
+    // Switch to search tab to show results
+    setActiveTab("search");
+    
     setIsLoading(true);
     setIsGeneratingAI(true);
     setError(null);

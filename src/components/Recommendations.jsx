@@ -135,10 +135,10 @@ const Recommendations = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              AI Recommendations
+              HackerNaut AI Recommendations
             </h2>
             <p className="text-gray-600">
-              Get personalized research recommendations powered by AI
+              Discover related NASA space biology research powered by HackerNaut AI. Get personalized recommendations based on your research interests or find similar studies to any research record.
             </p>
           </div>
         </div>
