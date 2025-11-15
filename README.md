@@ -9,14 +9,14 @@ BioNaut is a specialized research engine designed to help scientists, researcher
 ## ✨ Key Features
 
 ### 🔍 Advanced Search
-- **Semantic Search**: AI-powered natural language understanding
+- **Semantic Search**: HackerNaut AI-powered natural language understanding
 - **Smart Filtering**: Filter by source type, year range, and research categories
 - **Real-time Results**: Instant search with relevance scoring
 - **Query Suggestions**: Intelligent search recommendations
 
 ### 🤖 AI-Powered Analysis
-- **Intelligent Summaries**: Automated research paper summarization using Google Gemini AI
-- **Deep Insights**: AI-generated interpretations and key findings
+- **Intelligent Summaries**: Automated research paper summarization powered by HackerNaut AI
+- **Deep Insights**: Enhanced AI-generated interpretations using Gemini AI
 - **Connection Discovery**: Identify relationships between studies
 - **Pattern Recognition**: Automated analysis across publications
 
@@ -39,14 +39,28 @@ BioNaut is a specialized research engine designed to help scientists, researcher
 
 ## 🛠️ Technology Stack
 
+### Core Technologies
 - **React 18** - Modern component-based architecture
 - **Vite** - Lightning-fast build tool and dev server
 - **Tailwind CSS** - Utility-first CSS framework
 - **Framer Motion** - Smooth animations and transitions
 - **Three.js** - Powerful 3D visualization engine
 - **Recharts** - Beautiful, responsive charts
-- **Google Gemini AI** - Advanced AI analysis
 - **Axios** - HTTP client for API communication
+
+### 🎯 HackerNaut AI - Our Custom Models
+**HackerNaut AI** powers the core intelligence of BioNaut through proprietary models:
+
+- **🔍 Intelligent Scraper** - Custom-trained web scraping model that extracts structured data from research papers
+- **📄 Research Summarizer** - Proprietary summarization model optimized for academic content and space biology research
+- **🔎 Semantic Search Engine** - Advanced semantic understanding model for natural language research queries
+
+**API Endpoint**: `https://summarizer-model.onrender.com`
+- `/search/` - Semantic search with relevance scoring
+- `/summarize/` - Intelligent research paper summarization
+
+### ✨ Enhanced AI Capabilities
+- **Google Gemini AI** (gemini-2.5-flash) - Additional AI layer providing enhanced insights, trend analysis, and deep pattern recognition on top of our core HackerNaut models
 
 ## 📖 Usage Guide
 
@@ -104,8 +118,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
+- **HackerNaut AI Team** - For developing our custom scraper, summarizer, and semantic search models
 - NASA for providing access to space biology research data
-- Google Gemini AI for intelligent analysis capabilities
+- Google Gemini AI for enhanced analytical capabilities
 - The open-source community for amazing tools and libraries
 
 ## 📧 Contact
