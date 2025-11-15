@@ -48,38 +48,6 @@ BioNaut is a specialized research engine designed to help scientists, researcher
 - **Google Gemini AI** - Advanced AI analysis
 - **Axios** - HTTP client for API communication
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 16+ and npm/yarn
-- Google Gemini API key
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Laksh718/BioNaut.git
-cd BioNaut
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create a `.env` file in the root directory:
-```env
-VITE_GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-4. Start the development server:
-```bash
-npm run dev
-```
-
-5. Open your browser and navigate to `http://localhost:5173`
-
 ## 📖 Usage Guide
 
 ### Search Interface

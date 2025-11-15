@@ -246,6 +246,9 @@ const SearchResults = ({
                       <p className="text-sm text-gray-700 whitespace-pre-wrap">
                         {summaries[result.id]}
                       </p>
+                      <p className="text-xs text-gray-500 mt-3 italic">
+                        Powered by HackerNaut AI
+                      </p>
                     </motion.div>
                   )}
                 </div>
